@@ -1,7 +1,7 @@
 # 🌐 MERCREDI - AI-Powered Translation Assistant
 
 
-> **MERCREDI** est un assistant de traduction intelligent multilingue basé sur l'IA, capable de traduire du texte, des documents, de l'audio et des images en temps réel.
+> **MERCREDI** est un assistant de traduction intelligent multilingue basé sur l'IA, capable de traduire du texte, des documents, de l'audio et des images.
 
 ---
 
@@ -347,4 +347,5 @@ in the Software without restriction...
 
 
 **Développé par Amina@2026**
+
 
