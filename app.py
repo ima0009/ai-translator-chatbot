@@ -851,11 +851,9 @@ def init_supabase():
         url = st.secrets.get("SUPABASE_URL", "")
         key = st.secrets.get("SUPABASE_KEY", "")
         if url and key:
-            # Supabase v2+ — create_client() directement sans proxies
-            client = create_client(url, key)
-            return client
-    except Exception as e:
-        st.error(f"⚠️ Erreur Supabase : {e}")
+            return create_client(url, key)
+    except Exception:
+        pass
     return None
 
 def save_feedback(feedback_data, supabase):
