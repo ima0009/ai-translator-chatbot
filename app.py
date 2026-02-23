@@ -942,7 +942,8 @@ with tab1:
                     tts_audio(result, LANGUAGES[tgt_label])
                     add_history("📝 Texte", src_lang, tgt_lang, text_input, result)
                 except Exception as e:
-                    status.empty(); st.error(f"{_('Erreur','Error','خطأ','ⴰⵣⴳⴰⵍ')} : {e}")
+                    status.empty()
+                    st.error(_("Une erreur est survenue lors de la traduction.","An error occurred during translation.","حدث خطأ أثناء الترجمة.","ⵉⵍⵍⴰ ⵓⵣⴳⴰⵍ ⴷⵉ ⵜⵙⵓⵖⵍⵜ."))
 
 # ════════ ONGLET 2 — Document ════════
 with tab2:
@@ -979,7 +980,8 @@ with tab2:
                         st.info(f"📄 {ext} {_('prêt avec mise en forme conservée','ready with preserved formatting','جاهز مع الحفاظ على التنسيق','ⵢⴻⵍⵍⴰ ⵙ ⵓⵃⵟⵟⵓ ⵏ ⵓⵎⵙⴰⵙⵙ')} !")
                     add_history("📄 Document", src, tgt, uploaded_doc.name, f"traduction{ext}")
                 except Exception as e:
-                    status.empty(); st.error(f"{_('Erreur','Error','خطأ','ⴰⵣⴳⴰⵍ')} : {e}")
+                    status.empty()
+                    st.error(_("Une erreur est survenue lors de la traduction du document.","An error occurred during document translation.","حدث خطأ أثناء ترجمة المستند.","ⵉⵍⵍⴰ ⵓⵣⴳⴰⵍ ⴷⵉ ⵜⵙⵓⵖⵍⵜ ⵏ ⵓⵙⵏⵟⴰⵟ."))
 
 # ════════ ONGLET 3 — Audio ════════
 with tab3:
@@ -1006,13 +1008,15 @@ with tab3:
                     with col_b:
                         st.markdown("**" + _("Traduction","Translation","الترجمة","ⵜⴰⵙⵓⵖⵍⵜ") + " :**")
                         st.markdown(f'<div class="result-box">{result["translated_text"]}</div>', unsafe_allow_html=True)
-                        col_listen, _ = st.columns([1, 3])
-                        with col_listen:
-                            st.markdown("**🔊 " + _("Écouter","Listen","استمع","ⵙⵙⵍ") + "**")
-                            tts_audio(result["translated_text"], LANGUAGES[audio_tgt])
+                    
+                    # Move audio playback outside of columns
+                    st.markdown("**🔊 " + _("Écouter","Listen","استمع","ⵙⵙⵍ") + "**")
+                    tts_audio(result["translated_text"], LANGUAGES[audio_tgt])
+                    
                     add_history("🎙️ Audio", "auto", tgt, result["transcription"], result["translated_text"])
                 except Exception as e:
-                    status.empty(); st.error(f"{_('Erreur','Error','خطأ','ⴰⵣⴳⴰⵍ')} : {e}")
+                    status.empty()
+                    st.error(_("Une erreur est survenue lors de la transcription audio.","An error occurred during audio transcription.","حدث خطأ أثناء النسخ الصوتي.","ⵉⵍⵍⴰ ⵓⵣⴳⴰⵍ ⴷⵉ ⵓⵙⵙⵓⵖⵍ."))
 
 # ════════ ONGLET 4 — Image ════════
 with tab4:
@@ -1041,13 +1045,15 @@ with tab4:
                     with col_b:
                         st.markdown("**" + _("Traduction","Translation","الترجمة","ⵜⴰⵙⵓⵖⵍⵜ") + " :**")
                         st.markdown(f'<div class="result-box">{result["translated_text"]}</div>', unsafe_allow_html=True)
-                        col_listen, _ = st.columns([1, 3])
-                        with col_listen:
-                            st.markdown("**🔊 " + _("Écouter","Listen","استمع","ⵙⵙⵍ") + "**")
-                            tts_audio(result["translated_text"], LANGUAGES[img_tgt])
+                    
+                    # Move audio playback outside of columns
+                    st.markdown("**🔊 " + _("Écouter","Listen","استمع","ⵙⵙⵍ") + "**")
+                    tts_audio(result["translated_text"], LANGUAGES[img_tgt])
+                    
                     add_history("🖼️ Image", "auto", tgt, result["extracted_text"], result["translated_text"])
                 except Exception as e:
-                    status.empty(); st.error(f"{_('Erreur','Error','خطأ','ⴰⵣⴳⴰⵍ')} : {e}")
+                    status.empty()
+                    st.error(_("Une erreur est survenue lors de l'extraction de texte.","An error occurred during text extraction.","حدث خطأ أثناء استخراج النص.","ⵉⵍⵍⴰ ⵓⵣⴳⴰⵍ ⴷⵉ ⵓⴼⵙⴰⵔ ⵏ ⵓⴹⵕⵉⵚ."))
 
 # ════════ ONGLET 5 — Chat ════════
 with tab5:
@@ -1096,7 +1102,8 @@ with tab5:
                 st.session_state.chat_history.append({"role":"assistant","content":response,"has_image":False,"has_doc":False})
             except Exception as e:
                 status.empty()
-                st.session_state.chat_history.append({"role":"assistant","content":f"❌ Erreur : {e}","has_image":False,"has_doc":False})
+                error_msg = _("Une erreur est survenue. Veuillez réessayer.","An error occurred. Please try again.","حدث خطأ. يرجى المحاولة مرة أخرى.","ⵉⵍⵍⴰ ⵓⵣⴳⴰⵍ. ⵄⴰⵡⴷ ⴰⵔⴰⵎ.")
+                st.session_state.chat_history.append({"role":"assistant","content":f"❌ {error_msg}","has_image":False,"has_doc":False})
         st.rerun()
     if st.button("🗑️ " + _("Réinitialiser","Reset","اعادة ضبط","ⴰⵍⵙ"), key="btn_reset", use_container_width=True):
         st.session_state.chat_history = []
