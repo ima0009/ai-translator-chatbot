@@ -1,4 +1,4 @@
-streamlit==1.32.0
+streamlit
 rich==13.7.1
 groq==0.5.0
 requests==2.31.0
