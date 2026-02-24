@@ -966,11 +966,26 @@ with tab2:
     with col2:
         doc_tgt = st.selectbox(_("Langue cible","Target language","اللغة الهدف","ⵜⵓⵜⵍⴰⵢⵜ ⵜⴰⵎⴰⴹⵍⴰⵏⵜ"),
             list(LANGUAGES.keys()), index=1, key="doc_tgt")
-    uploaded_doc = st.file_uploader(_("Choisir un document","Choose a document","اختر مستند","ⴼⵔⵏ ⴰⵙⵏⵟⴰⵟ"),
-        type=["txt","docx","pdf","pptx"], key="doc_file")
+    uploaded_doc = st.file_uploader(
+        _("Choisir un document","Choose a document","اختر مستند","ⴼⵔⵏ ⴰⵙⵏⵟⴰⵟ"),
+        type=["txt","docx","pdf","pptx"], key="doc_file"
+    )
+    st.caption("📏 " + _("Taille max : 10 MB · ~100 pages recommandées (limite 128k tokens)",
+                          "Max size: 10 MB · ~100 pages recommended (128k token limit)",
+                          "الحجم الأقصى: 10 ميغابايت · ~100 صفحة (حد 128k رمز)",
+                          "ⵜⴰⵖⵓⵍⵜ: 10 MB · ~100 ⵉⵙⴼⵃⴰⵏ"))
+    if uploaded_doc:
+        size_mb = uploaded_doc.size / (1024 * 1024)
+        if size_mb > 10:
+            st.error(f"❌ " + _("Fichier trop lourd","File too large","الملف كبير جداً","ⴰⴼⴰⵢⵍ ⵉⵅⴻⵏ") + f" ({size_mb:.1f} MB > 10 MB)")
     if st.button("📄 " + _("Traduire","Translate","ترجمة","ⵙⵓⵖⵍ"), key="btn_doc", width="stretch"):
         if uploaded_doc is None:
             st.warning(_("Veuillez uploader un document.","Please upload a document.","الرجاء تحميل مستند.","ⵓⵔ ⵜⵛⴰⵔⴰⴷ ⴰⵙⵏⵟⴰⵟ."))
+        elif uploaded_doc.size / (1024 * 1024) > 10:
+            st.error(_("Fichier trop lourd (max 10 MB). Compressez ou découpez votre document.",
+                       "File too large (max 10 MB). Compress or split your document.",
+                       "الملف كبير جداً (أقصى 10 ميغابايت). قم بضغطه أو تقسيمه.",
+                       "ⴰⴼⴰⵢⵍ ⵉⵅⴻⵏ (10 MB). ⵙⵙⴽⵙⴻⵎ ⵏⵉⵖ ⴼⵙⴻⵎ."))
         else:
             status = st.empty()
             with st.spinner(_("Traduction en cours...","Translating...","جاري الترجمة...","ⴰⵙⵓⵖⵍ ⴷⴳ ⵓⴱⵔⵉⴷ...")):
@@ -1033,9 +1048,22 @@ with tab3:
             _("Choisir un fichier audio","Choose an audio file","اختر ملف صوت","ⴼⵔⵏ ⴰⵎⴻⴷⵢⴰ"),
             type=["mp3","wav","ogg","flac","m4a"], key="audio_file"
         )
+        st.caption("📏 " + _("Taille max : 25 MB · Durée max : ~2h (Groq Whisper)",
+                              "Max size: 25 MB · Max duration: ~2h (Groq Whisper)",
+                              "الحجم الأقصى: 25 ميغابايت · المدة الأقصى: ~ساعتين",
+                              "ⵜⴰⵖⵓⵍⵜ: 25 MB · ⴰⵣⵎⵣ: ~2h"))
+        if uploaded_audio:
+            size_mb = uploaded_audio.size / (1024 * 1024)
+            if size_mb > 25:
+                st.error(f"❌ " + _("Fichier trop lourd","File too large","الملف كبير جداً","ⴰⴼⴰⵢⵍ ⵉⵅⴻⵏ") + f" ({size_mb:.1f} MB > 25 MB)")
         if st.button("🎙️ " + _("Transcrire & Traduire","Transcribe & Translate","نسخ وترجمة","ⵙⵙⵓⵖⵍ ⴷ ⵙⵓⵖⵍ"), key="btn_audio", width="stretch"):
             if uploaded_audio is None:
                 st.warning(_("Veuillez uploader un fichier audio.","Please upload an audio file.","الرجاء تحميل ملف صوت.","ⵓⵔ ⵜⵛⴰⵔⴰⴷ ⴰⵎⴻⴷⵢⴰ."))
+            elif uploaded_audio.size / (1024 * 1024) > 25:
+                st.error(_("Fichier trop lourd (max 25 MB). Compressez votre audio.",
+                           "File too large (max 25 MB). Compress your audio.",
+                           "الملف كبير جداً (أقصى 25 ميغابايت). قم بضغطه.",
+                           "ⴰⴼⴰⵢⵍ ⵉⵅⴻⵏ (25 MB). ⵙⵙⴽⵙⴻⵎ."))
             else:
                 _process_audio(uploaded_audio, LANGUAGES[audio_tgt])
 
@@ -1102,11 +1130,28 @@ with tab4:
         _("Choisir une image","Choose an image","اختر صورة","ⴼⵔⵏ ⵜⴰⵡⵍⴰⴼⵜ"),
         type=["png","jpg","jpeg","bmp","tiff"], key="img_file"
     )
+    st.caption("📏 " + _("Taille max : 1 MB (clé gratuite OCR.space) · 5 MB (clé payante) — compression auto activée",
+                          "Max size: 1 MB (free OCR.space key) · 5 MB (paid key) — auto compression enabled",
+                          "الحجم الأقصى: 1 ميغابايت (مجاني) · 5 ميغابايت (مدفوع) — ضغط تلقائي مفعّل",
+                          "ⵜⴰⵖⵓⵍⵜ: 1 MB (ⴱⴰⴱⴰⵙ) · 5 MB (ⵉⵜⵜⵓⵅⵙⵙⴰ) — ⴰⵙⴽⵙⵓ ⴰⵡⵓⵔⵎⴰⵏ"))
     if uploaded_img:
+        size_mb = uploaded_img.size / (1024 * 1024)
+        if size_mb > 5:
+            st.error(f"❌ " + _("Fichier trop lourd","File too large","الملف كبير جداً","ⴰⴼⴰⵢⵍ ⵉⵅⴻⵏ") + f" ({size_mb:.1f} MB > 5 MB)")
+        elif size_mb > 1:
+            st.warning(f"⚠️ " + _("Image > 1 MB — compression automatique appliquée avant OCR.",
+                                   "Image > 1 MB — automatic compression applied before OCR.",
+                                   "الصورة > 1 ميغابايت — سيتم ضغطها تلقائياً.",
+                                   "ⵜⴰⵡⵍⴰⴼⵜ > 1 MB — ⴰⵙⴽⵙⵓ ⴰⵡⵓⵔⵎⴰⵏ.") + f" ({size_mb:.1f} MB)")
         st.image(uploaded_img, width=400)
     if st.button("🖼️ " + _("Extraire & Traduire","Extract & Translate","استخراج وترجمة","ⴼⵙⵙⵉ ⴷ ⵙⵓⵖⵍ"), key="btn_img", width="stretch"):
         if uploaded_img is None:
             st.warning(_("Veuillez uploader une image.","Please upload an image.","الرجاء تحميل صورة.","ⵓⵔ ⵜⵛⴰⵔⴰⴷ ⵜⴰⵡⵍⴰⴼⵜ."))
+        elif uploaded_img.size / (1024 * 1024) > 5:
+            st.error(_("Fichier trop lourd (max 5 MB). Réduisez la résolution de votre image.",
+                       "File too large (max 5 MB). Reduce your image resolution.",
+                       "الملف كبير جداً (أقصى 5 ميغابايت). قلل دقة الصورة.",
+                       "ⴰⴼⴰⵢⵍ ⵉⵅⴻⵏ (5 MB). ⵙⵙⴽⵙⴻⵎ ⵜⴰⵡⵍⴰⴼⵜ."))
         else:
             _process_image(uploaded_img, LANGUAGES[img_tgt])
 
