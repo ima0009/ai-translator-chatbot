@@ -6,7 +6,7 @@ import json
 import re
 from datetime import datetime
 
-st.set_page_config(page_title="MERCREDI-AI", page_icon="🌐", layout="wide")
+st.set_page_config(page_title="MERCREDI — Traducteur IA", page_icon="🌐", layout="wide")
 
 # ── Clés API ────────────────────────────────────────────────────────
 os.environ["OCR_API_KEY"] = st.secrets.get("OCR_API_KEY", "helloworld")
