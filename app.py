@@ -892,16 +892,37 @@ with col_r:
         st.session_state.page = "accueil"
         st.rerun()
 
+# ── Check if feedback is available ──────────────────────────────────
+try:
+    from streamlit_feedback import streamlit_feedback
+    FEEDBACK_AVAILABLE = True
+except ImportError:
+    FEEDBACK_AVAILABLE = False
+
+supabase_client = init_supabase()
+SHOW_FEEDBACK_TAB = FEEDBACK_AVAILABLE and supabase_client is not None
+
 # ── Tabs ─────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-    "📝 " + _("Texte", "Text", "نص", "ⴰⴹⵕⵉⵚ"),
-    "📄 " + _("Document", "Document", "مستند", "ⴰⵙⵏⵟⴰⵟ"),
-    "🎙️ " + _("Audio", "Audio", "صوت", "ⴰⵎⴻⴷⵢⴰ"),
-    "🖼️ " + _("Image", "Image", "صورة", "ⵜⴰⵡⵍⴰⴼⵜ"),
-    "💬 " + _("Chat", "Chat", "محادثة", "ⴰⵎⵙⴰⵡⴰⵍ"),
-    "📋 " + _("Historique", "History", "السجل", "ⴰⵎⵣⵔⵓⵢ"),
-    "💡 " + _("Feedback", "Feedback", "تقييم", "ⴰⵙⵖⵔⵓ")
-])
+if SHOW_FEEDBACK_TAB:
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+        "📝 " + _("Texte", "Text", "نص", "ⴰⴹⵕⵉⵚ"),
+        "📄 " + _("Document", "Document", "مستند", "ⴰⵙⵏⵟⴰⵟ"),
+        "🎙️ " + _("Audio", "Audio", "صوت", "ⴰⵎⴻⴷⵢⴰ"),
+        "🖼️ " + _("Image", "Image", "صورة", "ⵜⴰⵡⵍⴰⴼⵜ"),
+        "💬 " + _("Chat", "Chat", "محادثة", "ⴰⵎⵙⴰⵡⴰⵍ"),
+        "📋 " + _("Historique", "History", "السجل", "ⴰⵎⵣⵔⵓⵢ"),
+        "💡 " + _("Feedback", "Feedback", "تقييم", "ⴰⵙⵖⵔⵓ")
+    ])
+else:
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+        "📝 " + _("Texte", "Text", "نص", "ⴰⴹⵕⵉⵚ"),
+        "📄 " + _("Document", "Document", "مستند", "ⴰⵙⵏⵟⴰⵟ"),
+        "🎙️ " + _("Audio", "Audio", "صوت", "ⴰⵎⴻⴷⵢⴰ"),
+        "🖼️ " + _("Image", "Image", "صورة", "ⵜⴰⵡⵍⴰⴼⵜ"),
+        "💬 " + _("Chat", "Chat", "محادثة", "ⴰⵎⵙⴰⵡⴰⵍ"),
+        "📋 " + _("Historique", "History", "السجل", "ⴰⵎⵣⵔⵓⵢ")
+    ])
+    tab7 = None  # Set to None when feedback is not available
 
 # ════════ ONGLET 1 — Texte ════════
 with tab1:
@@ -916,8 +937,13 @@ with tab1:
             list(LANGUAGES.keys()), index=1, key="txt_tgt")
     col_left, col_right = st.columns(2)
     with col_left:
-        text_input = st.text_area("", height=200, key="txt_input",
-            placeholder=_("Entrez votre texte ici...","Enter your text here...","أدخل نصك هنا...","ⵙⵙⴽⴻⵎ ⴰⴹⵕⵉⵚ ⵏⵏⴽ ⴷⴰ..."))
+        text_input = st.text_area(
+            _("Texte source","Source text","النص المصدر","ⴰⴹⵕⵉⵚ ⴰⵏⵙⴰⵡ"), 
+            height=200, 
+            key="txt_input",
+            placeholder=_("Entrez votre texte ici...","Enter your text here...","أدخل نصك هنا...","ⵙⵙⴽⴻⵎ ⴰⴹⵕⵉⵚ ⵏⵏⴽ ⴷⴰ..."),
+            label_visibility="collapsed"
+        )
         st.caption(f"✏️ {len(text_input)} " + _("caractères","characters","حرف","ⵉⵙⴽⴽⵉⵍⵏ"))
     with col_right:
         result_placeholder = st.empty()
@@ -1080,9 +1106,12 @@ with tab5:
         if chat_doc: st.caption(f"✅ {chat_doc.name}")
     col_input, col_btn = st.columns([5, 1])
     with col_input:
-        user_input = st.text_input("", key="chat_input",
+        user_input = st.text_input(
+            _("Message","Message","رسالة","ⵜⴰⵣⵏⵉⵜ"), 
+            key="chat_input",
             placeholder=_("Posez votre question...","Ask your question...","اطرح سؤالك...","ⵙⴰⵇⵙⴰ ⴰⵎⴻⵙⵜⵓⵔ ⵏⵏⴽ..."),
-            label_visibility="collapsed")
+            label_visibility="collapsed"
+        )
     with col_btn:
         send = st.button("➤", key="btn_send", use_container_width=True)
     if send and (user_input.strip() or chat_img or chat_doc):
@@ -1132,157 +1161,158 @@ with tab6:
             </div>""", unsafe_allow_html=True)
 
 # ════════ ONGLET 7 — Feedback ════════
-with tab7:
-    st.subheader("💡 " + _("Centre de feedback","Feedback Center","مركز التقييم","ⴰⴳⵔⴰⵡ ⵏ ⵓⵙⵖⵔⵓ"))
-    supabase = init_supabase()
+if tab7 is not None:
+    with tab7:
+        st.subheader("💡 " + _("Centre de feedback","Feedback Center","مركز التقييم","ⴰⴳⵔⴰⵡ ⵏ ⵓⵙⵖⵔⵓ"))
+        supabase = init_supabase()
 
-    # Types de feedback multilingues (clé -> libellés)
-    FEEDBACK_TYPES = [
-        ("app",      "🌐 " + _("Application globale","Overall app","التطبيق الكامل","ⵓⵙⵏⴼⴰⵍ")),
-        ("text",     "📝 " + _("Traduction de texte","Text translation","ترجمة النص","ⵜⴰⵙⵓⵖⵍⵜ ⵏ ⵓⴹⵕⵉⵚ")),
-        ("document", "📄 " + _("Traduction de document","Document translation","ترجمة المستند","ⵜⴰⵙⵓⵖⵍⵜ ⵏ ⵓⵙⵏⵟⴰⵟ")),
-        ("audio",    "🎙️ " + _("Transcription audio","Audio transcription","نسخ الصوت","ⴰⵙⵙⵓⵖⵍ ⵏ ⵓⵎⴻⴷⵢⴰ")),
-        ("image",    "🖼️ " + _("OCR & traduction d'image","OCR & image translation","OCR وترجمة الصور","OCR ⴷ ⵜⵙⵓⵖⵍⵜ ⵏ ⵜⵡⵍⴰⴼⵜ")),
-        ("chat",     "💬 " + _("Chatbot IA","AI Chatbot","الدردشة الذكية","ⴰⵎⵙⴰⵡⴰⵍ ⴰⵎⴰⵙⵙⴰⵏ")),
-    ]
+        # Types de feedback multilingues (clé -> libellés)
+        FEEDBACK_TYPES = [
+            ("app",      "🌐 " + _("Application globale","Overall app","التطبيق الكامل","ⵓⵙⵏⴼⴰⵍ")),
+            ("text",     "📝 " + _("Traduction de texte","Text translation","ترجمة النص","ⵜⴰⵙⵓⵖⵍⵜ ⵏ ⵓⴹⵕⵉⵚ")),
+            ("document", "📄 " + _("Traduction de document","Document translation","ترجمة المستند","ⵜⴰⵙⵓⵖⵍⵜ ⵏ ⵓⵙⵏⵟⴰⵟ")),
+            ("audio",    "🎙️ " + _("Transcription audio","Audio transcription","نسخ الصوت","ⴰⵙⵙⵓⵖⵍ ⵏ ⵓⵎⴻⴷⵢⴰ")),
+            ("image",    "🖼️ " + _("OCR & traduction d'image","OCR & image translation","OCR وترجمة الصور","OCR ⴷ ⵜⵙⵓⵖⵍⵜ ⵏ ⵜⵡⵍⴰⴼⵜ")),
+            ("chat",     "💬 " + _("Chatbot IA","AI Chatbot","الدردشة الذكية","ⴰⵎⵙⴰⵡⴰⵍ ⴰⵎⴰⵙⵙⴰⵏ")),
+        ]
 
-    def translate_type_key(key):
-        mapping = {k: v for k, v in FEEDBACK_TYPES}
-        return mapping.get(key, key)
+        def translate_type_key(key):
+            mapping = {k: v for k, v in FEEDBACK_TYPES}
+            return mapping.get(key, key)
 
-    try:
-        from streamlit_feedback import streamlit_feedback
-        FEEDBACK_AVAILABLE = True
-    except ImportError:
-        FEEDBACK_AVAILABLE = False
+        try:
+            from streamlit_feedback import streamlit_feedback
+            FEEDBACK_AVAILABLE = True
+        except ImportError:
+            FEEDBACK_AVAILABLE = False
 
-    if not FEEDBACK_AVAILABLE or not supabase:
-        st.warning(_("Le module feedback nécessite l'installation de streamlit-feedback et la configuration de Supabase dans secrets.toml",
-                     "Feedback module requires streamlit-feedback installation and Supabase configuration in secrets.toml",
-                     "وحدة التقييم تتطلب تثبيت streamlit-feedback وتكوين Supabase",
-                     "ⴰⵙⵖⵔⵓ ⵉⵙⵔⵙⴰ streamlit-feedback ⴷ Supabase"))
-    else:
-        tab_new, tab_stats, tab_list = st.tabs([
-            "✏️ " + _("Nouveau feedback","New feedback","تقييم جديد","ⴰⵙⵖⵔⵓ ⴰⵎⴰⵢⵏⵓ"),
-            "📊 " + _("Statistiques","Statistics","الاحصائيات","ⵉⵙⵜⴰⵜⵉⵙⵜⵉⴽⵏ"),
-            "📋 " + _("Liste des retours","Feedback list","قائمة التقييمات","ⵓⵎⵓⵖ ⵏ ⵉⵙⵖⵔⵉⵡⵏ")
-        ])
+        if not FEEDBACK_AVAILABLE or not supabase:
+            st.warning(_("Le module feedback nécessite l'installation de streamlit-feedback et la configuration de Supabase dans secrets.toml",
+                         "Feedback module requires streamlit-feedback installation and Supabase configuration in secrets.toml",
+                         "وحدة التقييم تتطلب تثبيت streamlit-feedback وتكوين Supabase",
+                         "ⴰⵙⵖⵔⵓ ⵉⵙⵔⵙⴰ streamlit-feedback ⴷ Supabase"))
+        else:
+            tab_new, tab_stats, tab_list = st.tabs([
+                "✏️ " + _("Nouveau feedback","New feedback","تقييم جديد","ⴰⵙⵖⵔⵓ ⴰⵎⴰⵢⵏⵓ"),
+                "📊 " + _("Statistiques","Statistics","الاحصائيات","ⵉⵙⵜⴰⵜⵉⵙⵜⵉⴽⵏ"),
+                "📋 " + _("Liste des retours","Feedback list","قائمة التقييمات","ⵓⵎⵓⵖ ⵏ ⵉⵙⵖⵔⵉⵡⵏ")
+            ])
 
-        with tab_new:
-            with st.container():
-                st.markdown('<div class="feedback-card">', unsafe_allow_html=True)
-                type_options = {label: key for key, label in FEEDBACK_TYPES}
-                selected_label = st.radio(
-                    _("Que souhaitez-vous évaluer ?","What do you want to rate?","ماذا تريد تقييمه؟","ⵎⴰ ⵜⵔⵉⴷ ⵙⵖⵔⵓ?"),
-                    options=list(type_options.keys()),
-                    horizontal=True,
-                    key="feedback_category"
-                )
-                selected_key = type_options[selected_label]
+            with tab_new:
+                with st.container():
+                    st.markdown('<div class="feedback-card">', unsafe_allow_html=True)
+                    type_options = {label: key for key, label in FEEDBACK_TYPES}
+                    selected_label = st.radio(
+                        _("Que souhaitez-vous évaluer ?","What do you want to rate?","ماذا تريد تقييمه؟","ⵎⴰ ⵜⵔⵉⴷ ⵙⵖⵔⵓ?"),
+                        options=list(type_options.keys()),
+                        horizontal=True,
+                        key="feedback_category"
+                    )
+                    selected_key = type_options[selected_label]
 
-                streamlit_feedback(
-                    feedback_type="faces",
-                    optional_text_label=_("Suggestions d'amélioration (optionnel)","Improvement suggestions (optional)","اقتراحات التحسين (اختياري)","ⵉⵎⵙⴳⵏⴰⵙⵏ (ⴰⵔ ⵉⵙⵔⴰ)"),
-                    key="feedback_widget"
-                )
+                    streamlit_feedback(
+                        feedback_type="faces",
+                        optional_text_label=_("Suggestions d'amélioration (optionnel)","Improvement suggestions (optional)","اقتراحات التحسين (اختياري)","ⵉⵎⵙⴳⵏⴰⵙⵏ (ⴰⵔ ⵉⵙⵔⴰ)"),
+                        key="feedback_widget"
+                    )
 
-                user_name = st.text_input(
-                    _("Votre nom (optionnel)","Your name (optional)","اسمك (اختياري)","ⵉⵙⵎⴽ (ⴰⵔ ⵉⵙⵔⴰ)"),
-                    placeholder="Anonyme"
-                )
+                    user_name = st.text_input(
+                        _("Votre nom (optionnel)","Your name (optional)","اسمك (اختياري)","ⵉⵙⵎⴽ (ⴰⵔ ⵉⵙⵔⴰ)"),
+                        placeholder="Anonyme"
+                    )
 
-                if st.button("📤 " + _("Envoyer","Send","ارسال","ⴰⵣⵏ"), use_container_width=True):
-                    fb = st.session_state.get("feedback_widget")
-                    if not fb or fb.get('score') is None:
-                        st.error(_("Veuillez sélectionner une évaluation.","Please select a rating.","الرجاء اختيار تقييم.","ⵓⵔ ⵜⵛⴰⵔⴰⴷ ⴰⵙⵖⵔⵓ."))
-                    else:
-                        emoji_to_score = {'😍': 1.0, '😊': 0.75, '😐': 0.5, '😕': 0.25, '😞': 0.0}
-                        score_raw = fb.get('score')
-                        score_float = emoji_to_score.get(score_raw, 0.5) if isinstance(score_raw, str) else float(score_raw)
-                        data = {
-                            'type': selected_key,
-                            'score': score_float,
-                            'text': fb.get('text', ''),
-                            'user_name': user_name or "Anonyme",
-                            'timestamp': datetime.now().isoformat()
-                        }
-                        if save_feedback(data, supabase):
-                            st.success(_("Merci pour votre retour !","Thank you for your feedback!","شكرا على تقييمك!","ⵜⴰⵏⵎⵉⵔⵜ!"))
-                            st.balloons()
-                st.markdown('</div>', unsafe_allow_html=True)
+                    if st.button("📤 " + _("Envoyer","Send","ارسال","ⴰⵣⵏ"), use_container_width=True):
+                        fb = st.session_state.get("feedback_widget")
+                        if not fb or fb.get('score') is None:
+                            st.error(_("Veuillez sélectionner une évaluation.","Please select a rating.","الرجاء اختيار تقييم.","ⵓⵔ ⵜⵛⴰⵔⴰⴷ ⴰⵙⵖⵔⵓ."))
+                        else:
+                            emoji_to_score = {'😍': 1.0, '😊': 0.75, '😐': 0.5, '😕': 0.25, '😞': 0.0}
+                            score_raw = fb.get('score')
+                            score_float = emoji_to_score.get(score_raw, 0.5) if isinstance(score_raw, str) else float(score_raw)
+                            data = {
+                                'type': selected_key,
+                                'score': score_float,
+                                'text': fb.get('text', ''),
+                                'user_name': user_name or "Anonyme",
+                                'timestamp': datetime.now().isoformat()
+                            }
+                            if save_feedback(data, supabase):
+                                st.success(_("Merci pour votre retour !","Thank you for your feedback!","شكرا على تقييمك!","ⵜⴰⵏⵎⵉⵔⵜ!"))
+                                st.balloons()
+                    st.markdown('</div>', unsafe_allow_html=True)
 
-        with tab_stats:
-            feedbacks = load_feedbacks(supabase)
-            if feedbacks:
-                try:
-                    import pandas as pd
-                    import plotly.express as px
-                    df = pd.DataFrame(feedbacks)
+            with tab_stats:
+                feedbacks = load_feedbacks(supabase)
+                if feedbacks:
+                    try:
+                        import pandas as pd
+                        import plotly.express as px
+                        df = pd.DataFrame(feedbacks)
 
-                    df['score_float'] = pd.to_numeric(df['score'], errors='coerce')
+                        df['score_float'] = pd.to_numeric(df['score'], errors='coerce')
 
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        st.markdown('<div class="feedback-stats">', unsafe_allow_html=True)
-                        st.metric(_("Total retours","Total feedback","اجمالي التقييمات","ⴰⴽⴽ ⵏ ⵉⵙⵖⵔⵉⵡⵏ"), len(df))
-                        st.markdown('</div>', unsafe_allow_html=True)
-                    with col2:
-                        pct = len(df[df['score_float'] >= 0.5]) / len(df) * 100
-                        st.markdown('<div class="feedback-stats">', unsafe_allow_html=True)
-                        st.metric(_("Retours positifs","Positive feedback","تقييمات ايجابية","ⵉⵙⵖⵔⵉⵡⵏ ⵉⴼⵓⵍⴽⵉⵏ"), f"{pct:.0f}%")
-                        st.markdown('</div>', unsafe_allow_html=True)
-                    with col3:
-                        st.markdown('<div class="feedback-stats">', unsafe_allow_html=True)
-                        st.metric(_("Utilisateurs","Users","المستخدمون","ⵉⵙⵎⴷⴰⵏ"), df['user_name'].nunique())
-                        st.markdown('</div>', unsafe_allow_html=True)
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.markdown('<div class="feedback-stats">', unsafe_allow_html=True)
+                            st.metric(_("Total retours","Total feedback","اجمالي التقييمات","ⴰⴽⴽ ⵏ ⵉⵙⵖⵔⵉⵡⵏ"), len(df))
+                            st.markdown('</div>', unsafe_allow_html=True)
+                        with col2:
+                            pct = len(df[df['score_float'] >= 0.5]) / len(df) * 100
+                            st.markdown('<div class="feedback-stats">', unsafe_allow_html=True)
+                            st.metric(_("Retours positifs","Positive feedback","تقييمات ايجابية","ⵉⵙⵖⵔⵉⵡⵏ ⵉⴼⵓⵍⴽⵉⵏ"), f"{pct:.0f}%")
+                            st.markdown('</div>', unsafe_allow_html=True)
+                        with col3:
+                            st.markdown('<div class="feedback-stats">', unsafe_allow_html=True)
+                            st.metric(_("Utilisateurs","Users","المستخدمون","ⵉⵙⵎⴷⴰⵏ"), df['user_name'].nunique())
+                            st.markdown('</div>', unsafe_allow_html=True)
 
-                    type_counts = df['type'].value_counts().reset_index()
-                    type_counts.columns = ['type_key', 'count']
-                    type_counts['type_label'] = type_counts['type_key'].apply(translate_type_key)
-                    fig = px.pie(type_counts, values='count', names='type_label',
-                                 title=_("Répartition par type","Distribution by type","التوزيع حسب النوع","ⴰⴱⵟⵟⵓ ⵙ ⵓⵏⴰⵡ"),
-                                 hole=0.3)
-                    fig.update_traces(textposition='inside', textinfo='percent+label')
-                    st.plotly_chart(fig, use_container_width=True)
+                        type_counts = df['type'].value_counts().reset_index()
+                        type_counts.columns = ['type_key', 'count']
+                        type_counts['type_label'] = type_counts['type_key'].apply(translate_type_key)
+                        fig = px.pie(type_counts, values='count', names='type_label',
+                                     title=_("Répartition par type","Distribution by type","التوزيع حسب النوع","ⴰⴱⵟⵟⵓ ⵙ ⵓⵏⴰⵡ"),
+                                     hole=0.3)
+                        fig.update_traces(textposition='inside', textinfo='percent+label')
+                        st.plotly_chart(fig, use_container_width=True)
 
-                    if 'timestamp' in df.columns:
-                        df['date'] = pd.to_datetime(df['timestamp']).dt.date
-                        daily = df.groupby('date').size().reset_index(name='count')
-                        fig2 = px.line(daily, x='date', y='count',
-                                       title=_("Évolution des retours","Feedback evolution","تطور التقييمات","ⴰⵏⴰⵡⴰⵢ ⵏ ⵉⵙⵖⵔⵉⵡⵏ"),
-                                       markers=True, line_shape='linear')
-                        fig2.update_traces(line_color='var(--st-secondary)')
-                        st.plotly_chart(fig2, use_container_width=True)
+                        if 'timestamp' in df.columns:
+                            df['date'] = pd.to_datetime(df['timestamp']).dt.date
+                            daily = df.groupby('date').size().reset_index(name='count')
+                            fig2 = px.line(daily, x='date', y='count',
+                                           title=_("Évolution des retours","Feedback evolution","تطور التقييمات","ⴰⵏⴰⵡⴰⵢ ⵏ ⵉⵙⵖⵔⵉⵡⵏ"),
+                                           markers=True, line_shape='linear')
+                            fig2.update_traces(line_color='var(--st-secondary)')
+                            st.plotly_chart(fig2, use_container_width=True)
 
-                except ImportError:
-                    st.info(_("Installez pandas et plotly pour les statistiques.","Install pandas and plotly for statistics.","قم بتثبيت pandas و plotly للاحصائيات.","ⵙⵙⵎⴷⵉ pandas ⴷ plotly."))
-            else:
-                st.info(_("Aucun feedback pour le moment.","No feedback yet.","لا يوجد تقييم بعد.","ⵓⵔ ⵍⵍⵉⵏ ⵉⵙⵖⵔⵉⵡⵏ ⵖⵉⵍⴰ."))
+                    except ImportError:
+                        st.info(_("Installez pandas et plotly pour les statistiques.","Install pandas and plotly for statistics.","قم بتثبيت pandas و plotly للاحصائيات.","ⵙⵙⵎⴷⵉ pandas ⴷ plotly."))
+                else:
+                    st.info(_("Aucun feedback pour le moment.","No feedback yet.","لا يوجد تقييم بعد.","ⵓⵔ ⵍⵍⵉⵏ ⵉⵙⵖⵔⵉⵡⵏ ⵖⵉⵍⴰ."))
 
-        with tab_list:
-            feedbacks = load_feedbacks(supabase)
-            if feedbacks:
-                st.markdown(f"**{len(feedbacks)}** " + _("retour(s)","feedback(s)","تقييم(ات)","ⵉⵙⵖⵔⵉⵡⵏ"))
-                for fb in feedbacks[:20]:
-                    score = float(fb.get('score', 0.5))
-                    if score >= 0.7:
-                        score_class = "feedback-score-high"
-                    elif score >= 0.4:
-                        score_class = "feedback-score-medium"
-                    else:
-                        score_class = "feedback-score-low"
+            with tab_list:
+                feedbacks = load_feedbacks(supabase)
+                if feedbacks:
+                    st.markdown(f"**{len(feedbacks)}** " + _("retour(s)","feedback(s)","تقييم(ات)","ⵉⵙⵖⵔⵉⵡⵏ"))
+                    for fb in feedbacks[:20]:
+                        score = float(fb.get('score', 0.5))
+                        if score >= 0.7:
+                            score_class = "feedback-score-high"
+                        elif score >= 0.4:
+                            score_class = "feedback-score-medium"
+                        else:
+                            score_class = "feedback-score-low"
 
-                    type_display = translate_type_key(fb.get('type', 'app'))
+                        type_display = translate_type_key(fb.get('type', 'app'))
 
-                    st.markdown(f"""
-                    <div class="feedback-item {score_class}">
-                        <div style="display:flex; justify-content:space-between;">
-                            <span><b>{type_display}</b> · {fb.get('user_name', 'Anonyme')}</span>
-                            <span style="color:var(--text-secondary);">{fb.get('timestamp', '')[:10]}</span>
+                        st.markdown(f"""
+                        <div class="feedback-item {score_class}">
+                            <div style="display:flex; justify-content:space-between;">
+                                <span><b>{type_display}</b> · {fb.get('user_name', 'Anonyme')}</span>
+                                <span style="color:var(--text-secondary);">{fb.get('timestamp', '')[:10]}</span>
+                            </div>
+                            <div style="margin: 0.5rem 0;">{fb.get('text', '')}</div>
+                            <div style="font-size:1.2rem;">{'😍' if score>=0.8 else '😊' if score>=0.6 else '😐' if score>=0.4 else '😕' if score>=0.2 else '😞'}</div>
                         </div>
-                        <div style="margin: 0.5rem 0;">{fb.get('text', '')}</div>
-                        <div style="font-size:1.2rem;">{'😍' if score>=0.8 else '😊' if score>=0.6 else '😐' if score>=0.4 else '😕' if score>=0.2 else '😞'}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-            else:
-                st.info(_("Aucun feedback pour le moment.","No feedback yet.","لا يوجد تقييم بعد.","ⵓⵔ ⵍⵍⵉⵏ ⵉⵙⵖⵔⵉⵡⵏ ⵖⵉⵍⴰ."))
+                        """, unsafe_allow_html=True)
+                else:
+                    st.info(_("Aucun feedback pour le moment.","No feedback yet.","لا يوجد تقييم بعد.","ⵓⵔ ⵍⵍⵉⵏ ⵉⵙⵖⵔⵉⵡⵏ ⵖⵉⵍⴰ."))
