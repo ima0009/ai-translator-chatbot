@@ -6,7 +6,7 @@ import json
 import re
 from datetime import datetime
 
-st.set_page_config(page_title="MERCREDI — Traducteur IA", page_icon="🌐", layout="wide")
+st.set_page_config(page_title="MERCREDI-AI", page_icon="🌐", layout="wide")
 
 # ── Clés API ────────────────────────────────────────────────────────
 os.environ["OCR_API_KEY"] = st.secrets.get("OCR_API_KEY", "helloworld")
@@ -618,16 +618,16 @@ with col2:
 with col3:
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        if st.button("🇫🇷", key="lang_fr", disabled=st.session_state.language=="fr", use_container_width=True):
+        if st.button("🇫🇷", key="lang_fr", disabled=st.session_state.language=="fr", width="stretch"):
             st.session_state.language = "fr"; st.rerun()
     with c2:
-        if st.button("🇬🇧", key="lang_en", disabled=st.session_state.language=="en", use_container_width=True):
+        if st.button("🇬🇧", key="lang_en", disabled=st.session_state.language=="en", width="stretch"):
             st.session_state.language = "en"; st.rerun()
     with c3:
-        if st.button("🇸🇦", key="lang_ar", disabled=st.session_state.language=="ar", use_container_width=True):
+        if st.button("🇸🇦", key="lang_ar", disabled=st.session_state.language=="ar", width="stretch"):
             st.session_state.language = "ar"; st.rerun()
     with c4:
-        if st.button("ⵣ", key="lang_ber", disabled=st.session_state.language=="ber", use_container_width=True):
+        if st.button("ⵣ", key="lang_ber", disabled=st.session_state.language=="ber", width="stretch"):
             st.session_state.language = "ber"; st.rerun()
 
 st.markdown("<hr style='margin:1rem 0;border-color:var(--border-color);'>", unsafe_allow_html=True)
@@ -706,7 +706,7 @@ if st.session_state.page == "accueil":
 
         col_a, col_b, col_c = st.columns([1, 2, 1])
         with col_b:
-            if st.button(_("Valider et commencer", "Validate and start", "تحقق وابدأ", "ⵙⴻⵏⵇⴷ ⵙⴻⵏⵜⵉ"), key="btn_validate", use_container_width=True):
+            if st.button(_("Valider et commencer", "Validate and start", "تحقق وابدأ", "ⵙⴻⵏⵇⴷ ⵙⴻⵏⵜⵉ"), key="btn_validate", width="stretch"):
                 if not key_input.strip():
                     st.error(_("Veuillez entrer votre clé API.", "Please enter your API key.", "الرجاء ادخال مفتاح API.", "ⵓⵔ ⵜⵛⴰⵔⴰⴷ ⵜⴰⵙⴰⵔⵓⵜ."))
                 elif not key_input.strip().startswith("gsk_"):
@@ -729,7 +729,7 @@ if st.session_state.page == "accueil":
         </div>""", unsafe_allow_html=True)
         col_a, col_b, col_c = st.columns([1, 2, 1])
         with col_b:
-            if st.button(_("Accéder à l'application", "Access the app", "الوصول الى التطبيق", "ⴷⴷⵓ ⵖⵔ ⵓⵙⵏⴼⴰⵍ"), key="btn_start", use_container_width=True):
+            if st.button(_("Accéder à l'application", "Access the app", "الوصول الى التطبيق", "ⴷⴷⵓ ⵖⵔ ⵓⵙⵏⴼⴰⵍ"), key="btn_start", width="stretch"):
                 st.session_state.page = "main"; st.rerun()
 
     st.markdown(
@@ -794,9 +794,13 @@ def retry_call(fn, status_placeholder, *args, **kwargs):
         try:
             return fn(*args, **kwargs)
         except Exception as e:
-            if "429" in str(e) and attempt < retries - 1:
-                wait = 3
-                status_placeholder.warning(f"⏳ {_('Limite Groq atteinte, nouvelle tentative dans','Groq limit reached, retrying in','تم الوصول الى حد Groq, اعادة بعد','ⵜⴰⵖⵓⵍⵜ ⵏ Groq, ⴰⵢⴰⵔⴰⵢ ⴷⵉ')} {wait}s... ({attempt+1}/{retries})")
+            err = str(e)
+            is_rate_limit = "429" in err
+            is_timeout    = "timeout" in err.lower() or "timed out" in err.lower()
+            if (is_rate_limit or is_timeout) and attempt < retries - 1:
+                wait = 5 if is_timeout else 3
+                reason = _("Timeout réseau","Network timeout","انتهت مهلة الشبكة","ⵜⴰⵖⵓⵍⵜ ⵏ ⵓⵣⴷⴷⵓⵢ") if is_timeout else _("Limite Groq atteinte","Groq limit reached","تم الوصول الى حد Groq","ⵜⴰⵖⵓⵍⵜ ⵏ Groq")
+                status_placeholder.warning(f"⏳ {reason} — {_('nouvelle tentative dans','retrying in','اعادة بعد','ⴰⵢⴰⵔⴰⵢ ⴷⵉ')} {wait}s... ({attempt+1}/{retries})")
                 time.sleep(wait)
                 status_placeholder.empty()
             else:
@@ -844,7 +848,7 @@ def export_history_txt():
         lines.append("-" * 50)
     return "\n".join(lines).encode("utf-8")
 
-# ── Supabase feedback (optionnel) ────────────────────────────────────
+# ── Supabase feedback ────────────────────────────────────────────────
 def init_supabase():
     try:
         from supabase import create_client
@@ -887,42 +891,21 @@ def load_feedbacks(supabase):
 # ── Header principal ─────────────────────────────────────────────────
 col_l, col_r = st.columns([5, 1])
 with col_r:
-    if st.button("🔑 " + _("Changer de clé", "Change key", "تغيير المفتاح", "ⴱⴻⴷⴷⴻⵍ ⵜⴰⵙⴰⵔⵓⵜ"), key="btn_logout", use_container_width=True):
+    if st.button("🔑 " + _("Changer de clé", "Change key", "تغيير المفتاح", "ⴱⴻⴷⴷⴻⵍ ⵜⴰⵙⴰⵔⵓⵜ"), key="btn_logout", width="stretch"):
         st.session_state.groq_api_key = ""
         st.session_state.page = "accueil"
         st.rerun()
 
-# ── Check if feedback is available ──────────────────────────────────
-try:
-    from streamlit_feedback import streamlit_feedback
-    FEEDBACK_AVAILABLE = True
-except ImportError:
-    FEEDBACK_AVAILABLE = False
-
-supabase_client = init_supabase()
-SHOW_FEEDBACK_TAB = FEEDBACK_AVAILABLE and supabase_client is not None
-
 # ── Tabs ─────────────────────────────────────────────────────────────
-if SHOW_FEEDBACK_TAB:
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-        "📝 " + _("Texte", "Text", "نص", "ⴰⴹⵕⵉⵚ"),
-        "📄 " + _("Document", "Document", "مستند", "ⴰⵙⵏⵟⴰⵟ"),
-        "🎙️ " + _("Audio", "Audio", "صوت", "ⴰⵎⴻⴷⵢⴰ"),
-        "🖼️ " + _("Image", "Image", "صورة", "ⵜⴰⵡⵍⴰⴼⵜ"),
-        "💬 " + _("Chat", "Chat", "محادثة", "ⴰⵎⵙⴰⵡⴰⵍ"),
-        "📋 " + _("Historique", "History", "السجل", "ⴰⵎⵣⵔⵓⵢ"),
-        "💡 " + _("Feedback", "Feedback", "تقييم", "ⴰⵙⵖⵔⵓ")
-    ])
-else:
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-        "📝 " + _("Texte", "Text", "نص", "ⴰⴹⵕⵉⵚ"),
-        "📄 " + _("Document", "Document", "مستند", "ⴰⵙⵏⵟⴰⵟ"),
-        "🎙️ " + _("Audio", "Audio", "صوت", "ⴰⵎⴻⴷⵢⴰ"),
-        "🖼️ " + _("Image", "Image", "صورة", "ⵜⴰⵡⵍⴰⴼⵜ"),
-        "💬 " + _("Chat", "Chat", "محادثة", "ⴰⵎⵙⴰⵡⴰⵍ"),
-        "📋 " + _("Historique", "History", "السجل", "ⴰⵎⵣⵔⵓⵢ")
-    ])
-    tab7 = None  # Set to None when feedback is not available
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+    "📝 " + _("Texte", "Text", "نص", "ⴰⴹⵕⵉⵚ"),
+    "📄 " + _("Document", "Document", "مستند", "ⴰⵙⵏⵟⴰⵟ"),
+    "🎙️ " + _("Audio", "Audio", "صوت", "ⴰⵎⴻⴷⵢⴰ"),
+    "🖼️ " + _("Image", "Image", "صورة", "ⵜⴰⵡⵍⴰⴼⵜ"),
+    "💬 " + _("Chat", "Chat", "محادثة", "ⴰⵎⵙⴰⵡⴰⵍ"),
+    "📋 " + _("Historique", "History", "السجل", "ⴰⵎⵣⵔⵓⵢ"),
+    "💡 " + _("Feedback", "Feedback", "تقييم", "ⴰⵙⵖⵔⵓ")
+])
 
 # ════════ ONGLET 1 — Texte ════════
 with tab1:
@@ -937,9 +920,10 @@ with tab1:
             list(LANGUAGES.keys()), index=1, key="txt_tgt")
     col_left, col_right = st.columns(2)
     with col_left:
+        # FIX 1: replaced "" with a real label + label_visibility="collapsed"
         text_input = st.text_area(
-            _("Texte source","Source text","النص المصدر","ⴰⴹⵕⵉⵚ ⴰⵏⵙⴰⵡ"), 
-            height=200, 
+            _("Texte source", "Source text", "النص المصدر", "ⴰⴹⵕⵉⵚ ⴰⵏⵙⴰⵡ"),
+            height=200,
             key="txt_input",
             placeholder=_("Entrez votre texte ici...","Enter your text here...","أدخل نصك هنا...","ⵙⵙⴽⴻⵎ ⴰⴹⵕⵉⵚ ⵏⵏⴽ ⴷⴰ..."),
             label_visibility="collapsed"
@@ -948,7 +932,7 @@ with tab1:
     with col_right:
         result_placeholder = st.empty()
         result_placeholder.markdown(f'<div class="result-box" style="color:var(--text-muted);min-height:200px">{_("La traduction apparaîtra ici...","Translation will appear here...","ستظهر الترجمة هنا...","ⴰⵜⵜⵢⴰⴼ ⵓⵙⵓⵖⵍ ⴷⴰ...")}</div>', unsafe_allow_html=True)
-    if st.button("🔄 " + _("Traduire","Translate","ترجمة","ⵙⵓⵖⵍ"), key="btn_txt", use_container_width=True):
+    if st.button("🔄 " + _("Traduire","Translate","ترجمة","ⵙⵓⵖⵍ"), key="btn_txt", width="stretch"):
         if not text_input.strip():
             st.warning(_("Veuillez entrer du texte.","Please enter some text.","الرجاء ادخال نص.","ⵓⵔ ⵜⵛⴰⵔⴰⴷ ⴰⴹⵕⵉⵚ."))
         else:
@@ -984,7 +968,7 @@ with tab2:
             list(LANGUAGES.keys()), index=1, key="doc_tgt")
     uploaded_doc = st.file_uploader(_("Choisir un document","Choose a document","اختر مستند","ⴼⵔⵏ ⴰⵙⵏⵟⴰⵟ"),
         type=["txt","docx","pdf","pptx"], key="doc_file")
-    if st.button("📄 " + _("Traduire","Translate","ترجمة","ⵙⵓⵖⵍ"), key="btn_doc", use_container_width=True):
+    if st.button("📄 " + _("Traduire","Translate","ترجمة","ⵙⵓⵖⵍ"), key="btn_doc", width="stretch"):
         if uploaded_doc is None:
             st.warning(_("Veuillez uploader un document.","Please upload a document.","الرجاء تحميل مستند.","ⵓⵔ ⵜⵛⴰⵔⴰⴷ ⴰⵙⵏⵟⴰⵟ."))
         else:
@@ -998,7 +982,7 @@ with tab2:
                     status.empty()
                     st.success(_("Traduction terminée !","Translation complete!","اكتملت الترجمة!","ⵜⴻⴼⵓⴽ ⵜⵙⵓⵖⵍⵜ!"))
                     st.download_button("📥 " + _("Télécharger","Download","تحميل","ⴰⴳⵎⴰⵜⵓⵔⵉⵏ"),
-                        data=content, file_name=f"traduction{ext}", mime=mime, use_container_width=True)
+                        data=content, file_name=f"traduction{ext}", mime=mime, width="stretch")
                     if ext == ".txt":
                         decoded = content.decode("utf-8")
                         st.markdown(f'<div class="result-box">{decoded[:1000]}</div>', unsafe_allow_html=True)
@@ -1013,73 +997,118 @@ with tab2:
 with tab3:
     st.subheader(_("Transcription & traduction audio","Audio transcription & translation","نسخ وترجمة الصوت","ⴰⵙⵙⵓⵖⵍ ⴷ ⵜⵙⵓⵖⵍⵜ ⵏ ⵓⵎⴻⴷⵢⴰ"))
     st.caption("🎤 Whisper Large v3 Turbo · Groq")
+
     audio_tgt = st.selectbox(_("Langue cible","Target language","اللغة الهدف","ⵜⵓⵜⵍⴰⵢⵜ ⵜⴰⵎⴰⴹⵍⴰⵏⵜ"),
         list(LANGUAGES.keys()), index=1, key="audio_tgt")
-    uploaded_audio = st.file_uploader(_("Choisir un fichier audio","Choose an audio file","اختر ملف صوت","ⴼⵔⵏ ⴰⵎⴻⴷⵢⴰ"),
-        type=["mp3","wav","ogg","flac","m4a"], key="audio_file")
-    if st.button("🎙️ " + _("Transcrire & Traduire","Transcribe & Translate","نسخ وترجمة","ⵙⵙⵓⵖⵍ ⴷ ⵙⵓⵖⵍ"), key="btn_audio", use_container_width=True):
-        if uploaded_audio is None:
-            st.warning(_("Veuillez uploader un fichier audio.","Please upload an audio file.","الرجاء تحميل ملف صوت.","ⵓⵔ ⵜⵛⴰⵔⴰⴷ ⴰⵎⴻⴷⵢⴰ."))
-        else:
-            status = st.empty()
-            with st.spinner(_("Transcription en cours...","Transcribing...","جاري النسخ...","ⴰⵙⵙⵓⵖⵍ ⴷⴳ ⵓⴱⵔⵉⴷ...")):
-                try:
-                    tgt = LANGUAGES[audio_tgt]
-                    result = retry_call(modules["audio"].translate, status, uploaded_audio, tgt)
-                    status.empty()
-                    col_a, col_b = st.columns(2)
-                    with col_a:
-                        st.markdown("**" + _("Transcription","Transcription","النسخ","ⴰⵙⵙⵓⵖⵍ") + " :**")
-                        st.markdown(f'<div class="result-box">{result["transcription"]}</div>', unsafe_allow_html=True)
-                    with col_b:
-                        st.markdown("**" + _("Traduction","Translation","الترجمة","ⵜⴰⵙⵓⵖⵍⵜ") + " :**")
-                        st.markdown(f'<div class="result-box">{result["translated_text"]}</div>', unsafe_allow_html=True)
-                    
-                    # Move audio playback outside of columns
-                    st.markdown("**🔊 " + _("Écouter","Listen","استمع","ⵙⵙⵍ") + "**")
-                    tts_audio(result["translated_text"], LANGUAGES[audio_tgt])
-                    
-                    add_history("🎙️ Audio", "auto", tgt, result["transcription"], result["translated_text"])
-                except Exception as e:
-                    status.empty()
-                    st.error(_("Une erreur est survenue lors de la transcription audio.","An error occurred during audio transcription.","حدث خطأ أثناء النسخ الصوتي.","ⵉⵍⵍⴰ ⵓⵣⴳⴰⵍ ⴷⵉ ⵓⵙⵙⵓⵖⵍ."))
+
+    # ── Deux options : fichier OU micro ──────────────────────────────
+    audio_sub1, audio_sub2 = st.tabs([
+        "📂 " + _("Fichier audio","Audio file","ملف صوتي","ⴰⵎⴻⴷⵢⴰ ⵏ ⵓⴼⴰⵢⵍ"),
+        "🎙️ " + _("Enregistrer","Record","تسجيل","ⴰⵣⵏ ⵓⵙⴻⵏⴼⴰⵍ")
+    ])
+
+    def _process_audio(audio_source, tgt_lang_key):
+        """Traite une source audio (fichier uploadé ou BytesIO du micro) et affiche les résultats."""
+        status = st.empty()
+        with st.spinner(_("Transcription en cours...","Transcribing...","جاري النسخ...","ⴰⵙⵙⵓⵖⵍ ⴷⴳ ⵓⴱⵔⵉⴷ...")):
+            try:
+                result = retry_call(modules["audio"].translate, status, audio_source, tgt_lang_key)
+                status.empty()
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    st.markdown("**" + _("Transcription","Transcription","النسخ","ⴰⵙⵙⵓⵖⵍ") + " :**")
+                    st.markdown(f'<div class="result-box">{result["transcription"]}</div>', unsafe_allow_html=True)
+                with col_b:
+                    st.markdown("**" + _("Traduction","Translation","الترجمة","ⵜⴰⵙⵓⵖⵍⵜ") + " :**")
+                    st.markdown(f'<div class="result-box">{result["translated_text"]}</div>', unsafe_allow_html=True)
+                st.markdown("**🔊 " + _("Écouter","Listen","استمع","ⵙⵙⵍ") + "**")
+                tts_audio(result["translated_text"], LANGUAGES[audio_tgt])
+                add_history("🎙️ Audio", "auto", tgt_lang_key, result["transcription"], result["translated_text"])
+            except Exception as e:
+                status.empty()
+                st.error(_("Une erreur est survenue lors de la transcription audio.","An error occurred during audio transcription.","حدث خطأ أثناء النسخ الصوتي.","ⵉⵍⵍⴰ ⵓⵣⴳⴰⵍ ⴷⵉ ⵓⵙⵙⵓⵖⵍ."))
+
+    with audio_sub1:
+        uploaded_audio = st.file_uploader(
+            _("Choisir un fichier audio","Choose an audio file","اختر ملف صوت","ⴼⵔⵏ ⴰⵎⴻⴷⵢⴰ"),
+            type=["mp3","wav","ogg","flac","m4a"], key="audio_file"
+        )
+        if st.button("🎙️ " + _("Transcrire & Traduire","Transcribe & Translate","نسخ وترجمة","ⵙⵙⵓⵖⵍ ⴷ ⵙⵓⵖⵍ"), key="btn_audio", width="stretch"):
+            if uploaded_audio is None:
+                st.warning(_("Veuillez uploader un fichier audio.","Please upload an audio file.","الرجاء تحميل ملف صوت.","ⵓⵔ ⵜⵛⴰⵔⴰⴷ ⴰⵎⴻⴷⵢⴰ."))
+            else:
+                _process_audio(uploaded_audio, LANGUAGES[audio_tgt])
+
+    with audio_sub2:
+        st.info("🎙️ " + _("Cliquez sur le micro pour démarrer, puis à nouveau pour arrêter.",
+                            "Click the mic to start recording, then again to stop.",
+                            "انقر على الميكروفون للبدء، ثم مرة أخرى للإيقاف.",
+                            "ⵙⵏⵖⵍ ⴰⵎⵉⴽⵔⵓ ⴰⴷ ⵜⵙⵏⵜⵉⴷ, ⵓⵍⴰ ⵜⵉⵙⵙ ⵙⵏⴰⵜ ⴰⴷ ⵜⵓⴼⵓⴷ."))
+        recorded_audio = st.audio_input(
+            _("🎙️ Enregistrer ma voix", "🎙️ Record my voice", "🎙️ تسجيل صوتي", "🎙️ ⴰⵣⵏ ⵓⵎⵙⵙⵍⵖⵓ"),
+            key="audio_mic"
+        )
+        if recorded_audio is not None:
+            st.success("✅ " + _("Enregistrement prêt ! Cliquez sur Transcrire & Traduire.",
+                                  "Recording ready! Click Transcribe & Translate.",
+                                  "التسجيل جاهز! انقر على نسخ وترجمة.",
+                                  "ⴰⵣⵏ ⵢⴻⵍⵍⴰ! ⵙⵙⵓⵖⵍ ⴷ ⵙⵓⵖⵍ."))
+            if st.button("🔄 " + _("Transcrire & Traduire","Transcribe & Translate","نسخ وترجمة","ⵙⵙⵓⵖⵍ ⴷ ⵙⵓⵖⵍ"), key="btn_audio_mic", width="stretch"):
+                buf = io.BytesIO(recorded_audio.getvalue())
+                buf.name = "recording.wav"
+                buf.seek(0)
+                _process_audio(buf, LANGUAGES[audio_tgt])
 
 # ════════ ONGLET 4 — Image ════════
 with tab4:
     st.subheader(_("OCR & traduction d'image","OCR & image translation","OCR وترجمة الصور","OCR ⴷ ⵜⵙⵓⵖⵍⵜ ⵏ ⵜⵡⵍⴰⴼⵜ"))
     st.caption("🖼️ OCR.space API · Groq")
+
     img_tgt = st.selectbox(_("Langue cible","Target language","اللغة الهدف","ⵜⵓⵜⵍⴰⵢⵜ ⵜⴰⵎⴰⴹⵍⴰⵏⵜ"),
         list(LANGUAGES.keys()), index=1, key="img_tgt")
-    uploaded_img = st.file_uploader(_("Choisir une image","Choose an image","اختر صورة","ⴼⵔⵏ ⵜⴰⵡⵍⴰⴼⵜ"),
-        type=["png","jpg","jpeg","bmp","tiff"], key="img_file")
+
+    def _process_image(img_source, tgt_lang_key):
+        """Traite une source image (fichier uploadé ou photo caméra) et affiche les résultats."""
+        if hasattr(img_source, "seek"):
+            img_source.seek(0)
+        status = st.empty()
+        with st.spinner(_("OCR en cours...","OCR in progress...","جاري التعرف على النص...","OCR ⴷⴳ ⵓⴱⵔⵉⴷ...")):
+            try:
+                result = retry_call(modules["image"].translate, status, img_source, tgt_lang_key)
+                status.empty()
+                if not result.get("extracted_text"):
+                    st.warning(_("Aucun texte détecté dans l'image. Essayez une image plus nette ou avec plus de contraste.",
+                                  "No text detected in the image. Try a clearer image with more contrast.",
+                                  "لم يتم اكتشاف نص في الصورة. جرب صورة أوضح.",
+                                  "ⵓⵔ ⵉⵜⵜⵡⴰⴼ ⵓⴹⵕⵉⵚ. ⵙⵙⴽⵎ ⵜⴰⵡⵍⴰⴼⵜ ⵜⵓⴼⵔⴰⵔⵜ."))
+                    return
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    st.markdown("**" + _("Texte extrait","Extracted text","النص المستخرج","ⴰⴹⵕⵉⵚ ⵢⴻⵜⵜⵡⴰⴼⵙⴻⵔ") + " :**")
+                    st.markdown(f'<div class="result-box">{result["extracted_text"]}</div>', unsafe_allow_html=True)
+                with col_b:
+                    st.markdown("**" + _("Traduction","Translation","الترجمة","ⵜⴰⵙⵓⵖⵍⵜ") + " :**")
+                    st.markdown(f'<div class="result-box">{result["translated_text"]}</div>', unsafe_allow_html=True)
+                st.markdown("**🔊 " + _("Écouter","Listen","استمع","ⵙⵙⵍ") + "**")
+                tts_audio(result["translated_text"], LANGUAGES[img_tgt])
+                add_history("🖼️ Image", "auto", tgt_lang_key, result["extracted_text"], result["translated_text"])
+            except Exception as e:
+                status.empty()
+                st.error(_("Une erreur est survenue lors de l'extraction de texte.","An error occurred during text extraction.","حدث خطأ أثناء استخراج النص.","ⵉⵍⵍⴰ ⵓⵣⴳⴰⵍ ⴷⵉ ⵓⴼⵙⴰⵔ ⵏ ⵓⴹⵕⵉⵚ."))
+                with st.expander("🔍 " + _("Détail de l'erreur","Error detail","تفاصيل الخطأ","ⴰⵎⵢⴰⵡⴰⵙ ⵏ ⵓⵣⴳⴰⵍ")):
+                    st.exception(e)
+
+    uploaded_img = st.file_uploader(
+        _("Choisir une image","Choose an image","اختر صورة","ⴼⵔⵏ ⵜⴰⵡⵍⴰⴼⵜ"),
+        type=["png","jpg","jpeg","bmp","tiff"], key="img_file"
+    )
     if uploaded_img:
         st.image(uploaded_img, width=400)
-    if st.button("🖼️ " + _("Extraire & Traduire","Extract & Translate","استخراج وترجمة","ⴼⵙⵙⵉ ⴷ ⵙⵓⵖⵍ"), key="btn_img", use_container_width=True):
+    if st.button("🖼️ " + _("Extraire & Traduire","Extract & Translate","استخراج وترجمة","ⴼⵙⵙⵉ ⴷ ⵙⵓⵖⵍ"), key="btn_img", width="stretch"):
         if uploaded_img is None:
             st.warning(_("Veuillez uploader une image.","Please upload an image.","الرجاء تحميل صورة.","ⵓⵔ ⵜⵛⴰⵔⴰⴷ ⵜⴰⵡⵍⴰⴼⵜ."))
         else:
-            status = st.empty()
-            with st.spinner(_("OCR en cours...","OCR in progress...","جاري التعرف على النص...","OCR ⴷⴳ ⵓⴱⵔⵉⴷ...")):
-                try:
-                    tgt = LANGUAGES[img_tgt]
-                    result = retry_call(modules["image"].translate, status, uploaded_img, tgt)
-                    status.empty()
-                    col_a, col_b = st.columns(2)
-                    with col_a:
-                        st.markdown("**" + _("Texte extrait","Extracted text","النص المستخرج","ⴰⴹⵕⵉⵚ ⵢⴻⵜⵜⵡⴰⴼⵙⴻⵔ") + " :**")
-                        st.markdown(f'<div class="result-box">{result["extracted_text"]}</div>', unsafe_allow_html=True)
-                    with col_b:
-                        st.markdown("**" + _("Traduction","Translation","الترجمة","ⵜⴰⵙⵓⵖⵍⵜ") + " :**")
-                        st.markdown(f'<div class="result-box">{result["translated_text"]}</div>', unsafe_allow_html=True)
-                    
-                    # Move audio playback outside of columns
-                    st.markdown("**🔊 " + _("Écouter","Listen","استمع","ⵙⵙⵍ") + "**")
-                    tts_audio(result["translated_text"], LANGUAGES[img_tgt])
-                    
-                    add_history("🖼️ Image", "auto", tgt, result["extracted_text"], result["translated_text"])
-                except Exception as e:
-                    status.empty()
-                    st.error(_("Une erreur est survenue lors de l'extraction de texte.","An error occurred during text extraction.","حدث خطأ أثناء استخراج النص.","ⵉⵍⵍⴰ ⵓⵣⴳⴰⵍ ⴷⵉ ⵓⴼⵙⴰⵔ ⵏ ⵓⴹⵕⵉⵚ."))
+            _process_image(uploaded_img, LANGUAGES[img_tgt])
 
 # ════════ ONGLET 5 — Chat ════════
 with tab5:
@@ -1106,14 +1135,15 @@ with tab5:
         if chat_doc: st.caption(f"✅ {chat_doc.name}")
     col_input, col_btn = st.columns([5, 1])
     with col_input:
+        # FIX 2: replaced "" with a real label + label_visibility="collapsed"
         user_input = st.text_input(
-            _("Message","Message","رسالة","ⵜⴰⵣⵏⵉⵜ"), 
+            _("Message", "Message", "رسالة", "ⴰⵙⴻⵏⴼⴰⵍ"),
             key="chat_input",
             placeholder=_("Posez votre question...","Ask your question...","اطرح سؤالك...","ⵙⴰⵇⵙⴰ ⴰⵎⴻⵙⵜⵓⵔ ⵏⵏⴽ..."),
             label_visibility="collapsed"
         )
     with col_btn:
-        send = st.button("➤", key="btn_send", use_container_width=True)
+        send = st.button("➤", key="btn_send", width="stretch")
     if send and (user_input.strip() or chat_img or chat_doc):
         image_bytes = chat_img.read() if chat_img else None
         image_mime  = f"image/{chat_img.name.split('.')[-1].lower()}" if chat_img else "image/jpeg"
@@ -1134,7 +1164,7 @@ with tab5:
                 error_msg = _("Une erreur est survenue. Veuillez réessayer.","An error occurred. Please try again.","حدث خطأ. يرجى المحاولة مرة أخرى.","ⵉⵍⵍⴰ ⵓⵣⴳⴰⵍ. ⵄⴰⵡⴷ ⴰⵔⴰⵎ.")
                 st.session_state.chat_history.append({"role":"assistant","content":f"❌ {error_msg}","has_image":False,"has_doc":False})
         st.rerun()
-    if st.button("🗑️ " + _("Réinitialiser","Reset","اعادة ضبط","ⴰⵍⵙ"), key="btn_reset", use_container_width=True):
+    if st.button("🗑️ " + _("Réinitialiser","Reset","اعادة ضبط","ⴰⵍⵙ"), key="btn_reset", width="stretch"):
         st.session_state.chat_history = []
         modules["chatbot"].reset_conversation()
         st.rerun()
@@ -1148,9 +1178,9 @@ with tab6:
         col_h1, col_h2, col_h3 = st.columns([3, 1, 1])
         with col_h2:
             st.download_button("📄 " + _("Exporter","Export","تصدير","ⴰⴳⵎⴰⵜⵓⵔⵉⵏ"),
-                data=export_history_txt(), file_name="historique_mercredi.txt", mime="text/plain", use_container_width=True)
+                data=export_history_txt(), file_name="historique_mercredi.txt", mime="text/plain", width="stretch")
         with col_h3:
-            if st.button("🗑️ " + _("Vider","Clear","مسح","ⵙⴼⴷ"), key="btn_clear_history", use_container_width=True):
+            if st.button("🗑️ " + _("Vider","Clear","مسح","ⵙⴼⴷ"), key="btn_clear_history", width="stretch"):
                 st.session_state.history = []; st.rerun()
         for item in st.session_state.history:
             st.markdown(f"""
@@ -1161,158 +1191,164 @@ with tab6:
             </div>""", unsafe_allow_html=True)
 
 # ════════ ONGLET 7 — Feedback ════════
-if tab7 is not None:
-    with tab7:
-        st.subheader("💡 " + _("Centre de feedback","Feedback Center","مركز التقييم","ⴰⴳⵔⴰⵡ ⵏ ⵓⵙⵖⵔⵓ"))
-        supabase = init_supabase()
+with tab7:
+    st.subheader("💡 " + _("Centre de feedback","Feedback Center","مركز التقييم","ⴰⴳⵔⴰⵡ ⵏ ⵓⵙⵖⵔⵓ"))
+    supabase = init_supabase()
 
-        # Types de feedback multilingues (clé -> libellés)
-        FEEDBACK_TYPES = [
-            ("app",      "🌐 " + _("Application globale","Overall app","التطبيق الكامل","ⵓⵙⵏⴼⴰⵍ")),
-            ("text",     "📝 " + _("Traduction de texte","Text translation","ترجمة النص","ⵜⴰⵙⵓⵖⵍⵜ ⵏ ⵓⴹⵕⵉⵚ")),
-            ("document", "📄 " + _("Traduction de document","Document translation","ترجمة المستند","ⵜⴰⵙⵓⵖⵍⵜ ⵏ ⵓⵙⵏⵟⴰⵟ")),
-            ("audio",    "🎙️ " + _("Transcription audio","Audio transcription","نسخ الصوت","ⴰⵙⵙⵓⵖⵍ ⵏ ⵓⵎⴻⴷⵢⴰ")),
-            ("image",    "🖼️ " + _("OCR & traduction d'image","OCR & image translation","OCR وترجمة الصور","OCR ⴷ ⵜⵙⵓⵖⵍⵜ ⵏ ⵜⵡⵍⴰⴼⵜ")),
-            ("chat",     "💬 " + _("Chatbot IA","AI Chatbot","الدردشة الذكية","ⴰⵎⵙⴰⵡⴰⵍ ⴰⵎⴰⵙⵙⴰⵏ")),
-        ]
+    FEEDBACK_TYPES = [
+        ("app",      "🌐 " + _("Application globale","Overall app","التطبيق الكامل","ⵓⵙⵏⴼⴰⵍ")),
+        ("text",     "📝 " + _("Traduction de texte","Text translation","ترجمة النص","ⵜⴰⵙⵓⵖⵍⵜ ⵏ ⵓⴹⵕⵉⵚ")),
+        ("document", "📄 " + _("Traduction de document","Document translation","ترجمة المستند","ⵜⴰⵙⵓⵖⵍⵜ ⵏ ⵓⵙⵏⵟⴰⵟ")),
+        ("audio",    "🎙️ " + _("Transcription audio","Audio transcription","نسخ الصوت","ⴰⵙⵙⵓⵖⵍ ⵏ ⵓⵎⴻⴷⵢⴰ")),
+        ("image",    "🖼️ " + _("OCR & traduction d'image","OCR & image translation","OCR وترجمة الصور","OCR ⴷ ⵜⵙⵓⵖⵍⵜ ⵏ ⵜⵡⵍⴰⴼⵜ")),
+        ("chat",     "💬 " + _("Chatbot IA","AI Chatbot","الدردشة الذكية","ⴰⵎⵙⴰⵡⴰⵍ ⴰⵎⴰⵙⵙⴰⵏ")),
+    ]
 
-        def translate_type_key(key):
-            mapping = {k: v for k, v in FEEDBACK_TYPES}
-            return mapping.get(key, key)
+    def translate_type_key(key):
+        mapping = {k: v for k, v in FEEDBACK_TYPES}
+        return mapping.get(key, key)
 
-        try:
-            from streamlit_feedback import streamlit_feedback
-            FEEDBACK_AVAILABLE = True
-        except ImportError:
-            FEEDBACK_AVAILABLE = False
+    if not supabase:
+        st.warning(_("Le module feedback nécessite la configuration de Supabase dans secrets.toml",
+                     "Feedback module requires Supabase configuration in secrets.toml",
+                     "وحدة التقييم تتطلب تكوين Supabase",
+                     "ⴰⵙⵖⵔⵓ ⵉⵙⵔⵙⴰ Supabase"))
+    else:
+        tab_new, tab_stats, tab_list = st.tabs([
+            "✏️ " + _("Nouveau feedback","New feedback","تقييم جديد","ⴰⵙⵖⵔⵓ ⴰⵎⴰⵢⵏⵓ"),
+            "📊 " + _("Statistiques","Statistics","الاحصائيات","ⵉⵙⵜⴰⵜⵉⵙⵜⵉⴽⵏ"),
+            "📋 " + _("Liste des retours","Feedback list","قائمة التقييمات","ⵓⵎⵓⵖ ⵏ ⵉⵙⵖⵔⵉⵡⵏ")
+        ])
 
-        if not FEEDBACK_AVAILABLE or not supabase:
-            st.warning(_("Le module feedback nécessite l'installation de streamlit-feedback et la configuration de Supabase dans secrets.toml",
-                         "Feedback module requires streamlit-feedback installation and Supabase configuration in secrets.toml",
-                         "وحدة التقييم تتطلب تثبيت streamlit-feedback وتكوين Supabase",
-                         "ⴰⵙⵖⵔⵓ ⵉⵙⵔⵙⴰ streamlit-feedback ⴷ Supabase"))
-        else:
-            tab_new, tab_stats, tab_list = st.tabs([
-                "✏️ " + _("Nouveau feedback","New feedback","تقييم جديد","ⴰⵙⵖⵔⵓ ⴰⵎⴰⵢⵏⵓ"),
-                "📊 " + _("Statistiques","Statistics","الاحصائيات","ⵉⵙⵜⴰⵜⵉⵙⵜⵉⴽⵏ"),
-                "📋 " + _("Liste des retours","Feedback list","قائمة التقييمات","ⵓⵎⵓⵖ ⵏ ⵉⵙⵖⵔⵉⵡⵏ")
-            ])
+        with tab_new:
+            with st.container():
+                st.markdown('<div class="feedback-card">', unsafe_allow_html=True)
+                type_options = {label: key for key, label in FEEDBACK_TYPES}
+                selected_label = st.radio(
+                    _("Que souhaitez-vous évaluer ?","What do you want to rate?","ماذا تريد تقييمه؟","ⵎⴰ ⵜⵔⵉⴷ ⵙⵖⵔⵓ?"),
+                    options=list(type_options.keys()),
+                    horizontal=True,
+                    key="feedback_category"
+                )
+                selected_key = type_options[selected_label]
 
-            with tab_new:
-                with st.container():
-                    st.markdown('<div class="feedback-card">', unsafe_allow_html=True)
-                    type_options = {label: key for key, label in FEEDBACK_TYPES}
-                    selected_label = st.radio(
-                        _("Que souhaitez-vous évaluer ?","What do you want to rate?","ماذا تريد تقييمه؟","ⵎⴰ ⵜⵔⵉⴷ ⵙⵖⵔⵓ?"),
-                        options=list(type_options.keys()),
-                        horizontal=True,
-                        key="feedback_category"
-                    )
-                    selected_key = type_options[selected_label]
+                st.write(_("Votre évaluation :","Your rating:","تقييمك:","ⴰⵙⵖⵔⵓ ⵏⵏⴽ:"))
+                cols = st.columns(5)
+                emoji_score = {"😞": 0, "😕": 1, "😐": 2, "😊": 3, "😍": 4}
+                for col, (emoji, score) in zip(cols, emoji_score.items()):
+                    if col.button(emoji, key=f"fb_emoji_{score}"):
+                        st.session_state["feedback_emoji"] = emoji
+                        st.session_state["feedback_score"] = score
+                if "feedback_emoji" in st.session_state:
+                    st.success(f"{_('Sélectionné','Selected','المحدد','ⵉⵜⵜⵓⴼⵔⴰⵏ')} : {st.session_state['feedback_emoji']}")
 
-                    streamlit_feedback(
-                        feedback_type="faces",
-                        optional_text_label=_("Suggestions d'amélioration (optionnel)","Improvement suggestions (optional)","اقتراحات التحسين (اختياري)","ⵉⵎⵙⴳⵏⴰⵙⵏ (ⴰⵔ ⵉⵙⵔⴰ)"),
-                        key="feedback_widget"
-                    )
+                feedback_text = st.text_area(
+                    _("Suggestions d'amélioration (optionnel)","Improvement suggestions (optional)","اقتراحات التحسين (اختياري)","ⵉⵎⵙⴳⵏⴰⵙⵏ (ⴰⵔ ⵉⵙⵔⴰ)"),
+                    key="fb_comment"
+                )
 
-                    user_name = st.text_input(
-                        _("Votre nom (optionnel)","Your name (optional)","اسمك (اختياري)","ⵉⵙⵎⴽ (ⴰⵔ ⵉⵙⵔⴰ)"),
-                        placeholder="Anonyme"
-                    )
+                user_name = st.text_input(
+                    _("Votre nom (optionnel)","Your name (optional)","اسمك (اختياري)","ⵉⵙⵎⴽ (ⴰⵔ ⵉⵙⵔⴰ)"),
+                    placeholder="Anonyme"
+                )
 
-                    if st.button("📤 " + _("Envoyer","Send","ارسال","ⴰⵣⵏ"), use_container_width=True):
-                        fb = st.session_state.get("feedback_widget")
-                        if not fb or fb.get('score') is None:
-                            st.error(_("Veuillez sélectionner une évaluation.","Please select a rating.","الرجاء اختيار تقييم.","ⵓⵔ ⵜⵛⴰⵔⴰⴷ ⴰⵙⵖⵔⵓ."))
-                        else:
-                            emoji_to_score = {'😍': 1.0, '😊': 0.75, '😐': 0.5, '😕': 0.25, '😞': 0.0}
-                            score_raw = fb.get('score')
-                            score_float = emoji_to_score.get(score_raw, 0.5) if isinstance(score_raw, str) else float(score_raw)
-                            data = {
-                                'type': selected_key,
-                                'score': score_float,
-                                'text': fb.get('text', ''),
-                                'user_name': user_name or "Anonyme",
-                                'timestamp': datetime.now().isoformat()
-                            }
-                            if save_feedback(data, supabase):
-                                st.success(_("Merci pour votre retour !","Thank you for your feedback!","شكرا على تقييمك!","ⵜⴰⵏⵎⵉⵔⵜ!"))
-                                st.balloons()
-                    st.markdown('</div>', unsafe_allow_html=True)
+                if st.button("📤 " + _("Envoyer","Send","ارسال","ⴰⵣⵏ"), width="stretch"):
+                    if "feedback_score" not in st.session_state:
+                        st.error(_("Veuillez sélectionner une évaluation.","Please select a rating.","الرجاء اختيار تقييم.","ⵓⵔ ⵜⵛⴰⵔⴰⴷ ⴰⵙⵖⵔⵓ."))
+                    else:
+                        data = {
+                            'type': selected_key,
+                            'score': st.session_state["feedback_score"],
+                            'text': feedback_text or "",
+                            'user_name': user_name or "Anonyme",
+                            'timestamp': datetime.now().isoformat()
+                        }
+                        if save_feedback(data, supabase):
+                            st.success(_("Merci pour votre retour !","Thank you for your feedback!","شكرا على تقييمك!","ⵜⴰⵏⵎⵉⵔⵜ!"))
+                            st.balloons()
+                            del st.session_state["feedback_emoji"]
+                            del st.session_state["feedback_score"]
+                st.markdown('</div>', unsafe_allow_html=True)
 
-            with tab_stats:
-                feedbacks = load_feedbacks(supabase)
-                if feedbacks:
-                    try:
-                        import pandas as pd
-                        import plotly.express as px
-                        df = pd.DataFrame(feedbacks)
+        with tab_stats:
+            feedbacks = load_feedbacks(supabase)
+            if feedbacks:
+                for fb in feedbacks:
+                    if isinstance(fb.get('score'), float):
+                        fb['score'] = int(round(fb['score'] * 4))
+                try:
+                    import pandas as pd
+                    import plotly.express as px
+                    df = pd.DataFrame(feedbacks)
 
-                        df['score_float'] = pd.to_numeric(df['score'], errors='coerce')
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.markdown('<div class="feedback-stats">', unsafe_allow_html=True)
+                        st.metric(_("Total retours","Total feedback","اجمالي التقييمات","ⴰⴽⴽ ⵏ ⵉⵙⵖⵔⵉⵡⵏ"), len(df))
+                        st.markdown('</div>', unsafe_allow_html=True)
+                    with col2:
+                        positive_count = len(df[df['score'] >= 3])
+                        pct = positive_count / len(df) * 100
+                        st.markdown('<div class="feedback-stats">', unsafe_allow_html=True)
+                        st.metric(_("Retours positifs","Positive feedback","تقييمات ايجابية","ⵉⵙⵖⵔⵉⵡⵏ ⵉⴼⵓⵍⴽⵉⵏ"), f"{pct:.0f}%")
+                        st.markdown('</div>', unsafe_allow_html=True)
+                    with col3:
+                        st.markdown('<div class="feedback-stats">', unsafe_allow_html=True)
+                        st.metric(_("Utilisateurs","Users","المستخدمون","ⵉⵙⵎⴷⴰⵏ"), df['user_name'].nunique())
+                        st.markdown('</div>', unsafe_allow_html=True)
 
-                        col1, col2, col3 = st.columns(3)
-                        with col1:
-                            st.markdown('<div class="feedback-stats">', unsafe_allow_html=True)
-                            st.metric(_("Total retours","Total feedback","اجمالي التقييمات","ⴰⴽⴽ ⵏ ⵉⵙⵖⵔⵉⵡⵏ"), len(df))
-                            st.markdown('</div>', unsafe_allow_html=True)
-                        with col2:
-                            pct = len(df[df['score_float'] >= 0.5]) / len(df) * 100
-                            st.markdown('<div class="feedback-stats">', unsafe_allow_html=True)
-                            st.metric(_("Retours positifs","Positive feedback","تقييمات ايجابية","ⵉⵙⵖⵔⵉⵡⵏ ⵉⴼⵓⵍⴽⵉⵏ"), f"{pct:.0f}%")
-                            st.markdown('</div>', unsafe_allow_html=True)
-                        with col3:
-                            st.markdown('<div class="feedback-stats">', unsafe_allow_html=True)
-                            st.metric(_("Utilisateurs","Users","المستخدمون","ⵉⵙⵎⴷⴰⵏ"), df['user_name'].nunique())
-                            st.markdown('</div>', unsafe_allow_html=True)
+                    type_counts = df['type'].value_counts().reset_index()
+                    type_counts.columns = ['type_key', 'count']
+                    type_counts['type_label'] = type_counts['type_key'].apply(translate_type_key)
+                    fig = px.pie(type_counts, values='count', names='type_label',
+                                 title=_("Répartition par type","Distribution by type","التوزيع حسب النوع","ⴰⴱⵟⵟⵓ ⵙ ⵓⵏⴰⵡ"),
+                                 hole=0.3)
+                    fig.update_traces(textposition='inside', textinfo='percent+label')
+                    st.plotly_chart(fig, width="stretch")
 
-                        type_counts = df['type'].value_counts().reset_index()
-                        type_counts.columns = ['type_key', 'count']
-                        type_counts['type_label'] = type_counts['type_key'].apply(translate_type_key)
-                        fig = px.pie(type_counts, values='count', names='type_label',
-                                     title=_("Répartition par type","Distribution by type","التوزيع حسب النوع","ⴰⴱⵟⵟⵓ ⵙ ⵓⵏⴰⵡ"),
-                                     hole=0.3)
-                        fig.update_traces(textposition='inside', textinfo='percent+label')
-                        st.plotly_chart(fig, use_container_width=True)
+                    if 'timestamp' in df.columns:
+                        df['date'] = pd.to_datetime(df['timestamp']).dt.date
+                        daily = df.groupby('date').size().reset_index(name='count')
+                        fig2 = px.line(daily, x='date', y='count',
+                                       title=_("Évolution des retours","Feedback evolution","تطور التقييمات","ⴰⵏⴰⵡⴰⵢ ⵏ ⵉⵙⵖⵔⵉⵡⵏ"),
+                                       markers=True, line_shape='linear')
+                        fig2.update_traces(line_color='var(--st-secondary)')
+                        st.plotly_chart(fig2, width="stretch")
 
-                        if 'timestamp' in df.columns:
-                            df['date'] = pd.to_datetime(df['timestamp']).dt.date
-                            daily = df.groupby('date').size().reset_index(name='count')
-                            fig2 = px.line(daily, x='date', y='count',
-                                           title=_("Évolution des retours","Feedback evolution","تطور التقييمات","ⴰⵏⴰⵡⴰⵢ ⵏ ⵉⵙⵖⵔⵉⵡⵏ"),
-                                           markers=True, line_shape='linear')
-                            fig2.update_traces(line_color='var(--st-secondary)')
-                            st.plotly_chart(fig2, use_container_width=True)
+                except ImportError:
+                    st.info(_("Installez pandas et plotly pour les statistiques.","Install pandas and plotly for statistics.","قم بتثبيت pandas و plotly للاحصائيات.","ⵙⵙⵎⴷⵉ pandas ⴷ plotly."))
+            else:
+                st.info(_("Aucun feedback pour le moment.","No feedback yet.","لا يوجد تقييم بعد.","ⵓⵔ ⵍⵍⵉⵏ ⵉⵙⵖⵔⵉⵡⵏ ⵖⵉⵍⴰ."))
 
-                    except ImportError:
-                        st.info(_("Installez pandas et plotly pour les statistiques.","Install pandas and plotly for statistics.","قم بتثبيت pandas و plotly للاحصائيات.","ⵙⵙⵎⴷⵉ pandas ⴷ plotly."))
-                else:
-                    st.info(_("Aucun feedback pour le moment.","No feedback yet.","لا يوجد تقييم بعد.","ⵓⵔ ⵍⵍⵉⵏ ⵉⵙⵖⵔⵉⵡⵏ ⵖⵉⵍⴰ."))
+        with tab_list:
+            feedbacks = load_feedbacks(supabase)
+            if feedbacks:
+                for fb in feedbacks:
+                    if isinstance(fb.get('score'), float):
+                        fb['score'] = int(round(fb['score'] * 4))
+                st.markdown(f"**{len(feedbacks)}** " + _("retour(s)","feedback(s)","تقييم(ات)","ⵉⵙⵖⵔⵉⵡⵏ"))
+                score_to_emoji = {4:"😍", 3:"😊", 2:"😐", 1:"😕", 0:"😞"}
+                for fb in feedbacks[:20]:
+                    score = fb.get('score', 2)
+                    if score >= 3:
+                        score_class = "feedback-score-high"
+                    elif score >= 1:
+                        score_class = "feedback-score-medium"
+                    else:
+                        score_class = "feedback-score-low"
 
-            with tab_list:
-                feedbacks = load_feedbacks(supabase)
-                if feedbacks:
-                    st.markdown(f"**{len(feedbacks)}** " + _("retour(s)","feedback(s)","تقييم(ات)","ⵉⵙⵖⵔⵉⵡⵏ"))
-                    for fb in feedbacks[:20]:
-                        score = float(fb.get('score', 0.5))
-                        if score >= 0.7:
-                            score_class = "feedback-score-high"
-                        elif score >= 0.4:
-                            score_class = "feedback-score-medium"
-                        else:
-                            score_class = "feedback-score-low"
+                    type_display = translate_type_key(fb.get('type', 'app'))
+                    emoji_display = score_to_emoji.get(score, "😐")
 
-                        type_display = translate_type_key(fb.get('type', 'app'))
-
-                        st.markdown(f"""
-                        <div class="feedback-item {score_class}">
-                            <div style="display:flex; justify-content:space-between;">
-                                <span><b>{type_display}</b> · {fb.get('user_name', 'Anonyme')}</span>
-                                <span style="color:var(--text-secondary);">{fb.get('timestamp', '')[:10]}</span>
-                            </div>
-                            <div style="margin: 0.5rem 0;">{fb.get('text', '')}</div>
-                            <div style="font-size:1.2rem;">{'😍' if score>=0.8 else '😊' if score>=0.6 else '😐' if score>=0.4 else '😕' if score>=0.2 else '😞'}</div>
+                    st.markdown(f"""
+                    <div class="feedback-item {score_class}">
+                        <div style="display:flex; justify-content:space-between;">
+                            <span><b>{type_display}</b> · {fb.get('user_name', 'Anonyme')}</span>
+                            <span style="color:var(--text-secondary);">{fb.get('timestamp', '')[:10]}</span>
                         </div>
-                        """, unsafe_allow_html=True)
-                else:
-                    st.info(_("Aucun feedback pour le moment.","No feedback yet.","لا يوجد تقييم بعد.","ⵓⵔ ⵍⵍⵉⵏ ⵉⵙⵖⵔⵉⵡⵏ ⵖⵉⵍⴰ."))
+                        <div style="margin: 0.5rem 0;">{fb.get('text', '')}</div>
+                        <div style="font-size:1.2rem;">{emoji_display}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.info(_("Aucun feedback pour le moment.","No feedback yet.","لا يوجد تقييم بعد.","ⵓⵔ ⵍⵍⵉⵏ ⵉⵙⵖⵔⵉⵡⵏ ⵖⵉⵍⴰ."))
