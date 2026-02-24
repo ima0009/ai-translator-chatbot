@@ -6,7 +6,7 @@ import json
 import re
 from datetime import datetime
 
-st.set_page_config(page_title="MERCREDI — Traducteur IA", page_icon="🌐", layout="wide")
+st.set_page_config(page_title="MERCREDI — AI", page_icon="🌐", layout="wide")
 
 # ── Clés API ────────────────────────────────────────────────────────
 os.environ["OCR_API_KEY"] = st.secrets.get("OCR_API_KEY", "helloworld")
@@ -20,6 +20,13 @@ if "language" not in st.session_state:
 
 if "page" not in st.session_state:
     st.session_state.page = "accueil"
+
+# ── Limites de fichiers ──────────────────────────────────────────────
+MAX_IMAGE_SIZE_OCR = 1 * 1024 * 1024      # 1 Mo (OCR.space gratuit)
+MAX_IMAGE_SIZE_VISION = 5 * 1024 * 1024   # 5 Mo (Vision via Groq)
+MAX_AUDIO_SIZE = 20 * 1024 * 1024         # 20 Mo (Whisper Groq)
+MAX_DOC_SIZE = 10 * 1024 * 1024           # 10 Mo (documents)
+MAX_DOC_TEXT_LENGTH = 100000               # caractères après extraction
 
 def _(fr, en, ar=None, ber=None):
     if st.session_state.language == "en": return en
@@ -645,6 +652,16 @@ def validate_groq_key(key: str) -> bool:
     except Exception:
         return False
 
+# ── Fonction utilitaire pour vérifier la taille des fichiers ───────
+def check_file_size(uploaded_file, max_size, label):
+    if uploaded_file is None:
+        return True
+    file_size = uploaded_file.size
+    if file_size > max_size:
+        st.error(f"❌ {label} : {_('fichier trop volumineux (max','file too large (max','الملف كبير جداً (الحد الأقصى','ⴰⴼⴰⵢⵍ ⵉⵎⵇⵇⵓⵔ (ⴰⴽⴰⵍ')} {max_size//(1024*1024)} Mo)")
+        return False
+    return True
+
 # ══════════════════════════════════════════════════════════════════════
 # PAGE ACCUEIL
 # ══════════════════════════════════════════════════════════════════════
@@ -920,7 +937,7 @@ with tab1:
             list(LANGUAGES.keys()), index=1, key="txt_tgt")
     col_left, col_right = st.columns(2)
     with col_left:
-        # FIX 1: replaced "" with a real label + label_visibility="collapsed"
+        # Texte source
         text_input = st.text_area(
             _("Texte source", "Source text", "النص المصدر", "ⴰⴹⵕⵉⵚ ⴰⵏⵙⴰⵡ"),
             height=200,
@@ -966,26 +983,15 @@ with tab2:
     with col2:
         doc_tgt = st.selectbox(_("Langue cible","Target language","اللغة الهدف","ⵜⵓⵜⵍⴰⵢⵜ ⵜⴰⵎⴰⴹⵍⴰⵏⵜ"),
             list(LANGUAGES.keys()), index=1, key="doc_tgt")
-    uploaded_doc = st.file_uploader(
-        _("Choisir un document","Choose a document","اختر مستند","ⴼⵔⵏ ⴰⵙⵏⵟⴰⵟ"),
-        type=["txt","docx","pdf","pptx"], key="doc_file"
-    )
-    st.caption("📏 " + _("Taille max : 10 MB · ~100 pages recommandées (limite 128k tokens)",
-                          "Max size: 10 MB · ~100 pages recommended (128k token limit)",
-                          "الحجم الأقصى: 10 ميغابايت · ~100 صفحة (حد 128k رمز)",
-                          "ⵜⴰⵖⵓⵍⵜ: 10 MB · ~100 ⵉⵙⴼⵃⴰⵏ"))
-    if uploaded_doc:
-        size_mb = uploaded_doc.size / (1024 * 1024)
-        if size_mb > 10:
-            st.error(f"❌ " + _("Fichier trop lourd","File too large","الملف كبير جداً","ⴰⴼⴰⵢⵍ ⵉⵅⴻⵏ") + f" ({size_mb:.1f} MB > 10 MB)")
+    uploaded_doc = st.file_uploader(_("Choisir un document","Choose a document","اختر مستند","ⴼⵔⵏ ⴰⵙⵏⵟⴰⵟ"),
+        type=["txt","docx","pdf","pptx"], key="doc_file")
+    st.caption(f"📏 {_('Taille max','Max size','الحجم الأقصى','ⵜⴰⵏⴰⵢⵜ ⵜⴰⵎⵇⵇⵔⴰⵏⵜ')} : 10 Mo · {_('Texte extrait limité à','Extracted text limited to','النص المستخرج محدود بـ','ⴰⴹⵕⵉⵚ ⵢⴻⵜⵜⵡⴰⴼⵙⴻⵔ ⵉⵜⵜⵓⵙⵏⵜⵉ ⵙ')} 100k {_('car.','chars.','حرف','ⵉⵙⴽⴽⵉⵍⵏ')}")
+
     if st.button("📄 " + _("Traduire","Translate","ترجمة","ⵙⵓⵖⵍ"), key="btn_doc", width="stretch"):
         if uploaded_doc is None:
             st.warning(_("Veuillez uploader un document.","Please upload a document.","الرجاء تحميل مستند.","ⵓⵔ ⵜⵛⴰⵔⴰⴷ ⴰⵙⵏⵟⴰⵟ."))
-        elif uploaded_doc.size / (1024 * 1024) > 10:
-            st.error(_("Fichier trop lourd (max 10 MB). Compressez ou découpez votre document.",
-                       "File too large (max 10 MB). Compress or split your document.",
-                       "الملف كبير جداً (أقصى 10 ميغابايت). قم بضغطه أو تقسيمه.",
-                       "ⴰⴼⴰⵢⵍ ⵉⵅⴻⵏ (10 MB). ⵙⵙⴽⵙⴻⵎ ⵏⵉⵖ ⴼⵙⴻⵎ."))
+        elif not check_file_size(uploaded_doc, MAX_DOC_SIZE, "Document"):
+            pass
         else:
             status = st.empty()
             with st.spinner(_("Traduction en cours...","Translating...","جاري الترجمة...","ⴰⵙⵓⵖⵍ ⴷⴳ ⵓⴱⵔⵉⴷ...")):
@@ -1048,22 +1054,12 @@ with tab3:
             _("Choisir un fichier audio","Choose an audio file","اختر ملف صوت","ⴼⵔⵏ ⴰⵎⴻⴷⵢⴰ"),
             type=["mp3","wav","ogg","flac","m4a"], key="audio_file"
         )
-        st.caption("📏 " + _("Taille max : 25 MB · Durée max : ~2h (Groq Whisper)",
-                              "Max size: 25 MB · Max duration: ~2h (Groq Whisper)",
-                              "الحجم الأقصى: 25 ميغابايت · المدة الأقصى: ~ساعتين",
-                              "ⵜⴰⵖⵓⵍⵜ: 25 MB · ⴰⵣⵎⵣ: ~2h"))
-        if uploaded_audio:
-            size_mb = uploaded_audio.size / (1024 * 1024)
-            if size_mb > 25:
-                st.error(f"❌ " + _("Fichier trop lourd","File too large","الملف كبير جداً","ⴰⴼⴰⵢⵍ ⵉⵅⴻⵏ") + f" ({size_mb:.1f} MB > 25 MB)")
+        st.caption(f"📏 {_('Taille max','Max size','الحجم الأقصى','ⵜⴰⵏⴰⵢⵜ ⵜⴰⵎⵇⵇⵔⴰⵏⵜ')} : 20 Mo (Whisper)")
         if st.button("🎙️ " + _("Transcrire & Traduire","Transcribe & Translate","نسخ وترجمة","ⵙⵙⵓⵖⵍ ⴷ ⵙⵓⵖⵍ"), key="btn_audio", width="stretch"):
             if uploaded_audio is None:
                 st.warning(_("Veuillez uploader un fichier audio.","Please upload an audio file.","الرجاء تحميل ملف صوت.","ⵓⵔ ⵜⵛⴰⵔⴰⴷ ⴰⵎⴻⴷⵢⴰ."))
-            elif uploaded_audio.size / (1024 * 1024) > 25:
-                st.error(_("Fichier trop lourd (max 25 MB). Compressez votre audio.",
-                           "File too large (max 25 MB). Compress your audio.",
-                           "الملف كبير جداً (أقصى 25 ميغابايت). قم بضغطه.",
-                           "ⴰⴼⴰⵢⵍ ⵉⵅⴻⵏ (25 MB). ⵙⵙⴽⵙⴻⵎ."))
+            elif not check_file_size(uploaded_audio, MAX_AUDIO_SIZE, "Audio"):
+                pass
             else:
                 _process_audio(uploaded_audio, LANGUAGES[audio_tgt])
 
@@ -1130,28 +1126,15 @@ with tab4:
         _("Choisir une image","Choose an image","اختر صورة","ⴼⵔⵏ ⵜⴰⵡⵍⴰⴼⵜ"),
         type=["png","jpg","jpeg","bmp","tiff"], key="img_file"
     )
-    st.caption("📏 " + _("Taille max : 1 MB (clé gratuite OCR.space) · 5 MB (clé payante) — compression auto activée",
-                          "Max size: 1 MB (free OCR.space key) · 5 MB (paid key) — auto compression enabled",
-                          "الحجم الأقصى: 1 ميغابايت (مجاني) · 5 ميغابايت (مدفوع) — ضغط تلقائي مفعّل",
-                          "ⵜⴰⵖⵓⵍⵜ: 1 MB (ⴱⴰⴱⴰⵙ) · 5 MB (ⵉⵜⵜⵓⵅⵙⵙⴰ) — ⴰⵙⴽⵙⵓ ⴰⵡⵓⵔⵎⴰⵏ"))
+    st.caption(f"📏 {_('Taille max','Max size','الحجم الأقصى','ⵜⴰⵏⴰⵢⵜ ⵜⴰⵎⵇⵇⵔⴰⵏⵜ')} : 1 Mo (OCR.space)")
+
     if uploaded_img:
-        size_mb = uploaded_img.size / (1024 * 1024)
-        if size_mb > 5:
-            st.error(f"❌ " + _("Fichier trop lourd","File too large","الملف كبير جداً","ⴰⴼⴰⵢⵍ ⵉⵅⴻⵏ") + f" ({size_mb:.1f} MB > 5 MB)")
-        elif size_mb > 1:
-            st.warning(f"⚠️ " + _("Image > 1 MB — compression automatique appliquée avant OCR.",
-                                   "Image > 1 MB — automatic compression applied before OCR.",
-                                   "الصورة > 1 ميغابايت — سيتم ضغطها تلقائياً.",
-                                   "ⵜⴰⵡⵍⴰⴼⵜ > 1 MB — ⴰⵙⴽⵙⵓ ⴰⵡⵓⵔⵎⴰⵏ.") + f" ({size_mb:.1f} MB)")
         st.image(uploaded_img, width=400)
     if st.button("🖼️ " + _("Extraire & Traduire","Extract & Translate","استخراج وترجمة","ⴼⵙⵙⵉ ⴷ ⵙⵓⵖⵍ"), key="btn_img", width="stretch"):
         if uploaded_img is None:
             st.warning(_("Veuillez uploader une image.","Please upload an image.","الرجاء تحميل صورة.","ⵓⵔ ⵜⵛⴰⵔⴰⴷ ⵜⴰⵡⵍⴰⴼⵜ."))
-        elif uploaded_img.size / (1024 * 1024) > 5:
-            st.error(_("Fichier trop lourd (max 5 MB). Réduisez la résolution de votre image.",
-                       "File too large (max 5 MB). Reduce your image resolution.",
-                       "الملف كبير جداً (أقصى 5 ميغابايت). قلل دقة الصورة.",
-                       "ⴰⴼⴰⵢⵍ ⵉⵅⴻⵏ (5 MB). ⵙⵙⴽⵙⴻⵎ ⵜⴰⵡⵍⴰⴼⵜ."))
+        elif not check_file_size(uploaded_img, MAX_IMAGE_SIZE_OCR, "Image"):
+            pass
         else:
             _process_image(uploaded_img, LANGUAGES[img_tgt])
 
@@ -1173,14 +1156,16 @@ with tab5:
     with col_att1:
         chat_img = st.file_uploader("🖼️ " + _("Joindre une image","Attach an image","ارفاق صورة","ⵙⵎⴰⵜⵜⵉ ⵜⴰⵡⵍⴰⴼⵜ"),
             type=["png","jpg","jpeg","bmp","tiff"], key="chat_img")
+        st.caption(f"📏 5 Mo {_('max','max','كحد أقصى','ⵜⴰⵎⵇⵇⵔⴰⵏⵜ')}")
         if chat_img: st.image(chat_img, width=200)
     with col_att2:
         chat_doc = st.file_uploader("📄 " + _("Joindre un document","Attach a document","ارفاق مستند","ⵙⵎⴰⵜⵜⵉ ⴰⵙⵏⵟⴰⵟ"),
             type=["txt","pdf","docx","pptx"], key="chat_doc")
+        st.caption(f"📏 10 Mo {_('max','max','كحد أقصى','ⵜⴰⵎⵇⵇⵔⴰⵏⵜ')}")
         if chat_doc: st.caption(f"✅ {chat_doc.name}")
     col_input, col_btn = st.columns([5, 1])
     with col_input:
-        # FIX 2: replaced "" with a real label + label_visibility="collapsed"
+        # Message utilisateur
         user_input = st.text_input(
             _("Message", "Message", "رسالة", "ⴰⵙⴻⵏⴼⴰⵍ"),
             key="chat_input",
@@ -1190,6 +1175,13 @@ with tab5:
     with col_btn:
         send = st.button("➤", key="btn_send", width="stretch")
     if send and (user_input.strip() or chat_img or chat_doc):
+        # Vérifications des tailles avant traitement
+        if chat_img and chat_img.size > MAX_IMAGE_SIZE_VISION:
+            st.error(f"❌ {_('Image trop volumineuse (max','Image too large (max','الصورة كبيرة جداً (الحد الأقصى','ⵜⴰⵡⵍⴰⴼⵜ ⵜⵓⵎⵇⵇⵔ (ⴰⴽⴰⵍ')} 5 Mo)")
+            st.stop()
+        if chat_doc and chat_doc.size > MAX_DOC_SIZE:
+            st.error(f"❌ {_('Document trop volumineux (max','Document too large (max','المستند كبير جداً (الحد الأقصى','ⴰⵙⵏⵟⴰⵟ ⵉⵎⵇⵇⵓⵔ (ⴰⴽⴰⵍ')} 10 Mo)")
+            st.stop()
         image_bytes = chat_img.read() if chat_img else None
         image_mime  = f"image/{chat_img.name.split('.')[-1].lower()}" if chat_img else "image/jpeg"
         doc_bytes   = chat_doc.read() if chat_doc else None
